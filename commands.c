@@ -13,7 +13,14 @@ void commands(char* input){
         printf("plik - przesyła plik do drugiego użytkownika\n");
     }
     else if(strcmp(input, "plik") == 0){
-        system("clear");
+        printf("Podaj nazwę pliku do przesłania: ");
+        char filename[MAX];
+        if (fgets(filename, MAX, stdin) != NULL) {
+            filename[strcspn(filename, "\n")] = 0; // Usunięcie znaku nowej linii
+            send_file(filename);
+        } else {
+            printf("Błąd odczytu nazwy pliku.\n");
+        }
     }
     else {
         printf("Nieznana komenda. Wpisz 'help' aby zobaczyć dostępne komendy.\n");
