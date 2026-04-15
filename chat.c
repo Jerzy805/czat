@@ -37,7 +37,14 @@ void *reader(void *arg) {
 
 int main(int argc, char *argv[]) {
     if (argc != 3) {
-        printf("Użycie: %s <twój_nick> <nick_kolegi>\n", argv[0]);
+        printf("Użycie: %s <twój_nick> <nick_drugiego_użytkownika>\n", argv[0]);
+        printf("Inne użycie: %s info\n", argv[0]);
+        if (argc == 2 && argv[2] == "info")
+        {
+            // tu trzeba dać dokładną instrukcję obsługi, jako że będą też czaty grupowe
+            return 0;
+        }
+        printf("Jeżeli drugi użytkownik napisze coś w trakcie tego, jak coś pisałeś, wystarczy pisać dalej, tekst sam się uzupełni.\n");
         return 1;
     }
 
