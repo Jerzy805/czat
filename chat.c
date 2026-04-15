@@ -10,6 +10,7 @@
 
 #define MAX 256
 #define sciezka "/tmp/chat_%s-%s"
+#define lolz printf("lolz\n");
 //na testy
 char my_file[150];
 char other_file[150];
@@ -72,8 +73,13 @@ int main(int argc, char *argv[]) {
     if (argc != 3) {
         printf("Użycie: %s <twój_nick> <nick_drugiego_użytkownika>\n", argv[0]);
         printf("Inne użycie: %s info\n", argv[0]);
-        if (argc == 2 && strcmp(argv[2], "info") == 0)
-        {
+        if (argc == 3)
+        {   //to dosyc wazne bo wywala sie wszystko zrzut pamieci odwolanie poza obszar dostepny
+            if(strcmp(argv[2], "info") == 0){
+                printf("Informacje o czacie:\n");
+                printf("Twój nick: %s\n", argv[1]);
+                printf("Nick drugiego użytkownika: %s\n", argv[2]);
+            }
             // tu trzeba dać dokładną instrukcję obsługi, jako że będą też czaty grupowe
             return 0;
         }
