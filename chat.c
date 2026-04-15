@@ -5,6 +5,8 @@
 #include <pthread.h>
 #include <sys/stat.h>
 #include <signal.h>
+#include "commands.h"
+#include "file_send.h"
 
 #define MAX 256
 
@@ -97,6 +99,13 @@ int main(int argc, char *argv[]) {
     printf("Twój plik: %s\n", my_file);
     printf("Czytam z:  %s\n", other_file);
 
+    // Przed startem upewnijmy się, że mój plik ma uprawnienia do czytania dla kolegi
+    FILE *init = fopen(my_file, "a");
+    if (init) {
+        fclose(init);
+        chmod(my_file, 0644); // Właściciel pisze, inni tylko czytają
+    }
+
     pthread_t tid;
     pthread_create(&tid, NULL, reader, NULL);
 
@@ -110,6 +119,10 @@ int main(int argc, char *argv[]) {
                 fprintf(fWrite, "[%s] %s", my_name, msg);
                 fclose(fWrite);
                 fWrite = NULL;
+            }
+            else
+            {
+                perror("Błąd zapisu do Twojego pliku");
             }
         }
     }
