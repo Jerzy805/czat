@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
+#include "commands.h"
 
 #define MAX 256
 void commands(char* input){

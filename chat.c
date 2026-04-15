@@ -3,6 +3,9 @@
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <sys/stat.h>
+#include "commands.h"
+#include "file_send.h"
 
 #define MAX 256
 
@@ -10,84 +13,83 @@ char my_file[100];
 char other_file[100];
 char my_name[50];
 
-FILE *fread;
-FILE *fwrite;
-
-// wątek do czytania nowych wiadomości
-void *reader(void *arg)
+// Wątek do czytania wiadomości od TEGO DRUGIEGO (tylko odczyt)
+void *reader([[ maybe_unused ]]void *arg)
 {
+    FILE *f;
     char line[MAX];
 
-    // otwórz plik raz
-    while ((fread = fopen(other_file, "r")) == NULL)
+    // Czekaj na plik kolegi
+    while ((f = fopen(other_file, "r")) == NULL)
     {
-        sleep(1); // czekaj aż plik powstanie
+        usleep(500000); 
     }
 
-    // NAJPIERW pokaż istniejące wiadomości
-    while (fgets(line, MAX, fread))
-    {
-        printf("%s", line);
-    }
-
-    // potem przejdź w tryb "tail -f"
+    // Czytaj istniejące i nowe
     while (1)
     {
-        if (fgets(line, MAX, fread) != NULL)
-        {
-            printf("%s", line);
-            fflush(stdout);
+        if (fgets(line, MAX, f) != NULL)
+        {   
+            if(line[0]=='.'){
+                commands(line);
+            } else {
+                printf("%s", line);
+                fflush(stdout);  
+            }
+            
         }
         else
         {
-            clearerr(fread);
+            clearerr(f);
             usleep(200000);
         }
     }
-
-    fclose(fread);
     return NULL;
 }
-
 
 int main(int argc, char *argv[])
 {
     if (argc != 3)
     {
-        printf("Użycie: %s <twoja_nazwa> <nazwa_kolegi>\n", argv[0]);
+        printf("Użycie: %s <twój_nick> <nick_kolegi>\n", argv[0]);
         return 1;
     }
 
     strcpy(my_name, argv[1]);
 
+    // Definiujemy pliki:
+    // MÓJ plik (do którego JA piszę)
     snprintf(my_file, sizeof(my_file), "/tmp/msg_%s", argv[1]);
+    // PLIK KOLEGI (z którego JA tylko czytam)
     snprintf(other_file, sizeof(other_file), "/tmp/msg_%s", argv[2]);
+
+    // Przed startem upewnijmy się, że mój plik ma uprawnienia do czytania dla kolegi
+    FILE *init = fopen(my_file, "a");
+    if (init) {
+        fclose(init);
+        chmod(my_file, 0644); // Właściciel pisze, inni tylko czytają
+    }
 
     pthread_t tid;
     pthread_create(&tid, NULL, reader, NULL);
 
     char msg[MAX];
-
     while (1)
     {
         if (fgets(msg, MAX, stdin) != NULL)
         {
-            if(msg[0] == '.')
-            {
-                commands(msg);
+            // Otwieramy TYLKO SWÓJ plik (do którego mamy prawo własności)
+            FILE *f = fopen(my_file, "a");
+            if (f != NULL)
+            {   
+                fprintf(f, "[%s] %s", my_name, msg);
+                fclose(f);
             }
             else
             {
-                fwrite = fopen(my_file, "a");
-                if (fwrite != NULL)
-                {
-                    fprintf(fwrite, "[%s] %s", my_name, msg);
-                    fclose(fwrite);
-                }
+                perror("Błąd zapisu do Twojego pliku");
             }
-
         }
     }
-
     return 0;
 }

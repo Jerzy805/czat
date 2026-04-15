@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
+#include "file_send.h"
 
 void send_file(const char *filename)
 {
