@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <sys/stat.h>
+#include <signal.h>
 
 #define MAX 256
 
@@ -11,24 +12,37 @@ char my_file[150];
 char other_file[150];
 char my_name[50];
 
-void *reader(void *arg) {
-    FILE *f;
+FILE *fileRead;
+FILE *init;
+FILE *fWrite;
+
+void endAndClose(){
+    printf("Zamykam pliki...\n");
+    unlink(my_file);
+    unlink(other_file);
+    if (fileRead) fclose(fileRead);
+    if (init) fclose(init);
+    if (fWrite) fclose(fWrite);
+}
+
+void *reader() {
+
     char line[MAX];
 
     // Czekaj na plik kolegi (np. chat_emil-jerzy)
-    while ((f = fopen(other_file, "r")) == NULL) {
+    while ((fileRead = fopen(other_file, "r")) == NULL) {
         usleep(500000);
     }
 
     // Przeskocz do końca, żeby nie czytać historii przy wejściu
-    fseek(f, 0, SEEK_END);
+    fseek(fileRead, 0, SEEK_END);
 
     while (1) {
-        if (fgets(line, MAX, f) != NULL) {
+        if (fgets(line, MAX, fileRead) != NULL) {
             printf("\r\033[K%s> ", line); // Wyświetl wiadomość i przywróć znak zachęty
             fflush(stdout);
         } else {
-            clearerr(f);
+            clearerr(fileRead);
             usleep(100000);
         }
     }
@@ -36,10 +50,15 @@ void *reader(void *arg) {
 }
 
 int main(int argc, char *argv[]) {
+
+    if (signal(2, endAndClose) == SIG_ERR) {
+        perror("signal");
+        return 1;
+    }
     if (argc != 3) {
         printf("Użycie: %s <twój_nick> <nick_drugiego_użytkownika>\n", argv[0]);
         printf("Inne użycie: %s info\n", argv[0]);
-        if (argc == 2 && argv[2] == "info")
+        if (argc == 2 && strcmp(argv[2], "info") == 0)
         {
             // tu trzeba dać dokładną instrukcję obsługi, jako że będą też czaty grupowe
             return 0;
@@ -56,7 +75,7 @@ int main(int argc, char *argv[]) {
     snprintf(other_file, sizeof(other_file), "/tmp/chat_%s-%s", argv[2], argv[1]);
 
     // Utwórz swój plik i daj innym prawo do czytania (0644)
-    FILE *init = fopen(my_file, "a");
+    init = fopen(my_file, "a");
     if (init) {
         fclose(init);
         chmod(my_file, 0644);
@@ -74,10 +93,10 @@ int main(int argc, char *argv[]) {
         printf("> ");
         fflush(stdout);
         if (fgets(msg, MAX, stdin) != NULL) {
-            FILE *f = fopen(my_file, "a");
-            if (f != NULL) {
-                fprintf(f, "[%s] %s", my_name, msg);
-                fclose(f);
+            fWrite = fopen(my_file, "a");
+            if (fWrite != NULL) {
+                fprintf(fWrite, "[%s] %s", my_name, msg);
+                fclose(fWrite);
             }
         }
     }
