@@ -9,7 +9,8 @@
 #include "file_send.h"
 
 #define MAX 256
-
+#define sciezka "/tmp/chat_%s-%s"
+//na testy
 char my_file[150];
 char other_file[150];
 char my_name[50];
@@ -83,9 +84,9 @@ int main(int argc, char *argv[]) {
     strcpy(my_name, argv[1]);
 
     // Format: chat_JA-KOLEGA (to Twój plik do zapisu)
-    snprintf(my_file, sizeof(my_file), "/tmp/chat_%s-%s", argv[1], argv[2]);
+    snprintf(my_file, sizeof(my_file), sciezka, argv[1], argv[2]);
     // Format: chat_KOLEGA-JA (to plik kolegi, który czytasz)
-    snprintf(other_file, sizeof(other_file), "/tmp/chat_%s-%s", argv[2], argv[1]);
+    snprintf(other_file, sizeof(other_file), sciezka, argv[2], argv[1]);
 
     // Utwórz swój plik i daj innym prawo do czytania (0644)
     init = fopen(my_file, "a");
