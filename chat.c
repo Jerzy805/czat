@@ -10,20 +10,22 @@ char my_file[100];
 char other_file[100];
 char my_name[50];
 
+FILE *fread;
+FILE *fwrite;
+
 // wątek do czytania nowych wiadomości
 void *reader(void *arg)
 {
-    FILE *f;
     char line[MAX];
 
     // otwórz plik raz
-    while ((f = fopen(other_file, "r")) == NULL)
+    while ((fread = fopen(other_file, "r")) == NULL)
     {
         sleep(1); // czekaj aż plik powstanie
     }
 
     // NAJPIERW pokaż istniejące wiadomości
-    while (fgets(line, MAX, f))
+    while (fgets(line, MAX, fread))
     {
         printf("%s", line);
     }
@@ -31,19 +33,19 @@ void *reader(void *arg)
     // potem przejdź w tryb "tail -f"
     while (1)
     {
-        if (fgets(line, MAX, f) != NULL)
+        if (fgets(line, MAX, fread) != NULL)
         {
             printf("%s", line);
             fflush(stdout);
         }
         else
         {
-            clearerr(f);
+            clearerr(fread);
             usleep(200000);
         }
     }
 
-    fclose(f);
+    fclose(fread);
     return NULL;
 }
 
@@ -65,18 +67,25 @@ int main(int argc, char *argv[])
     pthread_create(&tid, NULL, reader, NULL);
 
     char msg[MAX];
-    FILE *f;
 
     while (1)
     {
         if (fgets(msg, MAX, stdin) != NULL)
         {
-            f = fopen(my_file, "a");
-            if (f != NULL)
+            if(msg[0] == '.')
             {
-                fprintf(f, "[%s] %s", my_name, msg);
-                fclose(f);
+                commands(msg);
             }
+            else
+            {
+                fwrite = fopen(my_file, "a");
+                if (fwrite != NULL)
+                {
+                    fprintf(fwrite, "[%s] %s", my_name, msg);
+                    fclose(fwrite);
+                }
+            }
+
         }
     }
 

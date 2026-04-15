@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -pedantic -pthread
 TARGET = czat
-SRC = chat.c
+SRC = chat.c commands.c
 # tu wyzej po spacji dopisywac pliki do skompilowania
 OBJ = $(SRC:.c=.o)
 
