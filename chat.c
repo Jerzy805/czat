@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <sys/stat.h> // Potrzebne do chmod
 
 #define MAX 256
 
@@ -10,25 +11,29 @@ char my_file[100];
 char other_file[100];
 char my_name[50];
 
-// wątek do czytania nowych wiadomości
+// Wątek do czytania nowych wiadomości od kolegi
 void *reader(void *arg)
 {
     FILE *f;
     char line[MAX];
 
-    // otwórz plik raz
-    while ((f = fopen(other_file, "r")) == NULL)
+   //printf("Czekam na wiadomości w pliku: %s...\n", other_file);
+
+    // Czekaj, aż plik kolegi zostanie utworzony
+    while (1)
     {
-        sleep(1); // czekaj aż plik powstanie
+        f = fopen(other_file, "r");
+        if (f != NULL) break;
+        usleep(500000); // czekaj 0.5s
     }
 
-    // NAJPIERW pokaż istniejące wiadomości
+    // Najpierw wypisz to, co już jest w pliku
     while (fgets(line, MAX, f))
     {
         printf("%s", line);
     }
 
-    // potem przejdź w tryb "tail -f"
+    // Tryb śledzenia pliku na żywo
     while (1)
     {
         if (fgets(line, MAX, f) != NULL)
@@ -38,6 +43,7 @@ void *reader(void *arg)
         }
         else
         {
+            // Jeśli nie ma nowych linii, wyczyść błąd EOF i czekaj
             clearerr(f);
             usleep(200000);
         }
@@ -46,7 +52,6 @@ void *reader(void *arg)
     fclose(f);
     return NULL;
 }
-
 
 int main(int argc, char *argv[])
 {
@@ -58,24 +63,41 @@ int main(int argc, char *argv[])
 
     strcpy(my_name, argv[1]);
 
+    // Ścieżki do plików w /tmp
     snprintf(my_file, sizeof(my_file), "/tmp/msg_%s", argv[1]);
     snprintf(other_file, sizeof(other_file), "/tmp/msg_%s", argv[2]);
 
+    // Tworzymy wątek czytający
     pthread_t tid;
-    pthread_create(&tid, NULL, reader, NULL);
+    if (pthread_create(&tid, NULL, reader, NULL) != 0) {
+        perror("Błąd tworzenia wątku");
+        return 1;
+    }
 
     char msg[MAX];
     FILE *f;
+
+    //printf("Zalogowano jako %s. Możesz pisać wiadomości:\n", my_name);
 
     while (1)
     {
         if (fgets(msg, MAX, stdin) != NULL)
         {
+            // Otwieramy plik w trybie dopisywania (append)
             f = fopen(my_file, "a");
             if (f != NULL)
             {
+                // KLUCZOWE: Nadajemy uprawnienia 0666 (rw-rw-rw-)
+                // Dzięki temu kolega będzie mógł czytać ten plik, 
+                // nawet jeśli nie jest jego właścicielem.
+                chmod(my_file, 0666);
+
                 fprintf(f, "[%s] %s", my_name, msg);
                 fclose(f);
+            }
+            else
+            {
+                perror("Błąd zapisu do pliku");
             }
         }
     }
