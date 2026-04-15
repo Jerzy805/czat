@@ -16,13 +16,24 @@ FILE *fileRead;
 FILE *init;
 FILE *fWrite;
 
-void endAndClose(){
+void endAndClose(int signum){
+    (void)signum;
     printf("Zamykam pliki...\n");
     unlink(my_file);
     unlink(other_file);
-    if (fileRead) fclose(fileRead);
-    if (init) fclose(init);
-    if (fWrite) fclose(fWrite);
+    if (fileRead) {
+        fclose(fileRead);
+        fileRead = NULL;
+    }
+    if (init) {
+        fclose(init);
+        init = NULL;
+    }
+    if (fWrite) {
+        fclose(fWrite);
+        fWrite = NULL;
+    }
+    exit(0);
 }
 
 void *reader() {
@@ -78,6 +89,7 @@ int main(int argc, char *argv[]) {
     init = fopen(my_file, "a");
     if (init) {
         fclose(init);
+        init = NULL;
         chmod(my_file, 0644);
     }
 
@@ -97,6 +109,7 @@ int main(int argc, char *argv[]) {
             if (fWrite != NULL) {
                 fprintf(fWrite, "[%s] %s", my_name, msg);
                 fclose(fWrite);
+                fWrite = NULL;
             }
         }
     }
