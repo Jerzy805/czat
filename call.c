@@ -31,7 +31,6 @@ int show_existing()
                 
                 char *friend_ptr = dir->d_name + len;
                 
-                printf("Znaleziono czat: %s\n", friend_ptr);
                 strcpy(found_friends[counter], friend_ptr);
                 counter++;
             }
@@ -132,12 +131,13 @@ int main()
     // Poprawiony scanf: bez & i z ograniczeniem szerokoci
     if (scanf("%49s", name) != 1) return 1;
     
-    printf("Szukam konwersacji dla: %s...\n", name);
     
     int counter = show_existing();
     
+    system("clear");
+    
     // wypisywanie menu konwersacji
-    printf("Wybierz czat:\n");
+    printf("Wybierz opcję:\n");
         
         int i = 0;
         
@@ -152,6 +152,7 @@ int main()
         printf("%d. Nowy czat, i =%d\n", i+1, i);
         
         printf("Żeby usunąć daną konwersację, wybierz jej numer i wpisz ze znakiem -\n");
+        printf("Żeby przesłać plik, w konwersacji użyj komendy: !==!, a następnie wprowadź nazwę pliku\n");
         
         int option;
         
@@ -159,21 +160,18 @@ int main()
         
         system("clear");
         
-        if (option == (i+1))
-        {
-            // uruchomienie nowego czatu
+        if (option == (i+1)) // uruchomienie nowego czatu
+        {   
             printf("Podaj nick drugiego rozmówcy: ");
             scanf("%s", friend_name);
             printf("Podaj jego nazwę w spk: ");
-            scanf("%s", id);
+            scanf("%s", id); // id jest pobierane
             
             // utworzenie pliku i nadanie odpowiednich uprawnień
             
             char filename[60];
             
             sprintf(filename, "/tmp/chat_%s-%s", name, friend_name);
-
-            get_id(filename);
             
             create_connection(filename, id);
             
@@ -197,6 +195,8 @@ int main()
                      "/tmp/chat_%s-%s", name, found_friends[option - 1]);
             
             get_id(filename);
+            
+            system("clear");
             
             execlp("./chat", "chat", name, found_friends[option - 1], id, NULL);
 

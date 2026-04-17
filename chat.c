@@ -21,25 +21,29 @@ char *send_file_signal = "!==!";
 
 bool check_msg(const char* msg)
 {
-    int len = strlen(msg);
-    int chars_to_skip = 3 + strlen(friend_name);
-    int i = chars_to_skip;
-
-    if (i + 3 >= len)
-        return false;
-
-    if (msg[i] == '!' && msg[i+1] == '=' &&
-        msg[i+2] == '=' && msg[i+3] == '!')
+    // 1. Szukamy sygnału !==! w wiadomości
+    char *signal_pos = strstr(msg, send_file_signal);
+    
+    if (signal_pos != NULL)
     {
-        int j = 0;
+        // 2. Nazwa zaczyna się 4 znaki po początku sygnału
+        char *name_start = signal_pos + 4;
+        
+        // 3. Kopiujemy nazwę do zmiennej globalnej
+        strncpy(sent_file_name, name_start, sizeof(sent_file_name) - 1);
+        sent_file_name[sizeof(sent_file_name) - 1] = '\0';
 
-        for (i = chars_to_skip + 4; i < len; i++)
+        // 4. TERAZ czyścimy końcówkę z Enterów i spacji
+        int lent = strlen(sent_file_name);
+        while (lent > 0 && (sent_file_name[lent-1] == '\n' || 
+                           sent_file_name[lent-1] == '\r' || 
+                           sent_file_name[lent-1] == ' ')) 
         {
-            sent_file_name[j++] = msg[i];
+            sent_file_name[lent-1] = '\0';
+            lent--;
         }
 
-        sent_file_name[j] = '\0';
-        return true;
+        return (lent > 0); // Zwróć true, jeśli nazwa nie jest pusta
     }
 
     return false;
@@ -47,9 +51,11 @@ bool check_msg(const char* msg)
 
 bool file_handler()
 {
-    printf("[System] %s chce ci wysłać plik %s, kontynuować [y/n]?", friend_name, sent_file_name);
+    printf("[System] %s chce ci wysłać plik %s, kontynuować [y/n]?\n", friend_name, sent_file_name);
+    fflush(stdout);
     char option;
     scanf("%c", &option);
+    fflush(stdout);
 
     if (option == 'y')
     {
@@ -117,10 +123,16 @@ void *reader(void *arg) {
                 if (!file_handler())
                 {
                     printf("Nie przyjąłeś pliku\n");
+                    char text[50];
+                    sprintf(text, "[System] %s nie przyjął pliku", my_name);
+                    append_text(text);
                 }
                 else
                 {
                     printf("Pomyślnie przyjąłeś plik\n");
+                    char text[50];
+                    sprintf(text, "[System] %s pomyślnie przyjął plik", my_name);
+                    append_text(text);
                 }
             }
             printf("\r\033[K%s> ", line); // Wyświetl wiadomość i przywróć znak zachęty
@@ -131,6 +143,13 @@ void *reader(void *arg) {
         }
     }
     return NULL;
+}
+
+void append_text(const char *text)
+{
+    FILE *f = fopen(my_file, "a");
+    fprintf(f, "%s\n", text);
+    fclose(f);
 }
 
 void update_history(char msg[MAX]) // funkcja nadpisująca lokalne pliki po obu stronach
@@ -189,27 +208,40 @@ int main(int argc, char *argv[]) {
 
     char msg[MAX];
     while (1) {
-        //printf("> ");
+        printf("> ");
         fflush(stdout);
+        
         if (fgets(msg, MAX, stdin) != NULL) {
+            // Usuwamy znak nowej linii z końca msg, jeśli jest
+            msg[strcspn(msg, "\n")] = 0;
+
             FILE *f = fopen(my_file, "a");
             if (f != NULL) {
-                if (strcmp(msg, send_file_signal)) // wychwycenie twojej chęci wysłania pliku
+                // Sprawdzamy czy wpisano DOKŁADNIE sygnał wysyłki
+                if (strcmp(msg, send_file_signal) == 0) 
                 {
-                    char *file_to_send = malloc(50);
-                    printf("Podaj nazwę pliku:\n");
-                    scanf("%s", file_to_send);
+                    char file_to_send[50]; // Lepiej statycznie lub free() później
+                    printf("Podaj nazwę pliku: ");
+                    scanf("%49s", file_to_send);
+                    
+                    // CZYŚCIMY BUFOR po scanf, aby następne fgets nie zwariowało
+                    int c;
+                    while ((c = getchar()) != '\n' && c != EOF); 
 
-                    send_file(my_file, file_to_send, id); // umiejscowienie pliku w odpowiednim miejscu
-
-                    sprintf(msg, "!==![%s]", file_to_send); // zakomunikowanie rozmówcy, że chcę mu coś wysłać
+                    send_file(my_file, file_to_send, id);
+                    sprintf(msg, "!==!%s", file_to_send);
                 }
-                fprintf(f, "[%s] %s", my_name, msg);
+                
+                // Zapisujemy do pliku (dodajemy \n, bo usunęliśmy go wyżej)
+                fprintf(f, "[%s] %s\n", my_name, msg);
                 fclose(f);
-                update_history(msg);
+                
+                // Do historii lokalnej też z nową linią
+                char hist_msg[MAX+10];
+                sprintf(hist_msg, "%s\n", msg);
+                update_history(hist_msg);
             }
         }
     }
     return 0;
 }
- // other_
