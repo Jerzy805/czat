@@ -15,13 +15,47 @@ char full_file[150];
 char my_name[50];
 char friend_name[50];
 char id[20];
+char sent_file_name[50];
 char *send_file_signal = "!==!";
 
-void send_file_handler()
+bool check_msg(const char* msg)
 {
-    
+    int len = strlen(msg);
+    int chars_to_skip = 3 + strlen(friend_name);
+    int i = chars_to_skip;
 
+    if (i + 3 >= len)
+        return false;
 
+    if (msg[i] == '!' && msg[i+1] == '=' &&
+        msg[i+2] == '=' && msg[i+3] == '!')
+    {
+        int j = 0;
+
+        for (i = chars_to_skip + 4; i < len; i++)
+        {
+            sent_file_name[j++] = msg[i];
+        }
+
+        sent_file_name[j] = '\0';
+        return true;
+    }
+
+    return false;
+}
+
+bool file_handler()
+{
+    printf("[System] %s chce ci wysłać plik %s, kontynuować [y/n]?", friend_name, sent_file_name);
+    char option;
+    scanf("%c", &option);
+
+    if (option == 'y')
+    {
+        get_file(sent_file_name);
+        return true;
+    }
+    return false;
 }
 
 void writer(char line[MAX]) // funkcja zapisująca lokalnie całą historię rozmowy
@@ -77,6 +111,17 @@ void *reader(void *arg) {
     while (1) {
         if (fgets(line, MAX, f) != NULL) {
             writer(line);
+            if (check_msg(line))
+            {
+                if (!file_handler())
+                {
+                    printf("Nie przyjąłeś pliku\n");
+                }
+                else
+                {
+                    printf("Pomyślnie przyjąłeś plik\n");
+                }
+            }
             printf("\r\033[K%s> ", line); // Wyświetl wiadomość i przywróć znak zachęty
             fflush(stdout);
         } else {
@@ -156,7 +201,7 @@ int main(int argc, char *argv[]) {
 
                     send_file(my_file, file_to_send, id); // umiejscowienie pliku w odpowiednim miejscu
 
-                    sprintf()
+                    sprintf(msg, "!==![%s]", file_send); // zakomunikowanie rozmówcy, że chcę mu coś wysłać
                 }
                 fprintf(f, "[%s] %s", my_name, msg);
                 fclose(f);
