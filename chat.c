@@ -109,11 +109,12 @@ int main(int argc, char *argv[]) {
     snprintf(full_file, sizeof(full_file), "/tmp/chat_%s-%s!full", argv[1], argv[2]);
 
     // Utwórz swój plik i daj innym prawo do czytania (0644)
-    FILE *init = fopen(my_file, "a");
-    if (init) {
-        fclose(init);
-        chmod(my_file, 0644);
-    }
+    // FILE *init = fopen(my_file, "a");
+    // if (init) {
+    //     fclose(init);
+    //     chmod(my_file, 0644);
+    // }
+    // zakomentowane, ponieważ tym się zajmuje plik call.c i daje prawo czytania jedynie drugiemu rozmócy
     
     show_last_history();
 
