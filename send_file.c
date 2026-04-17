@@ -7,7 +7,7 @@
 #include <fcntl.h> // do nadawania uprawnień plikom
 #include <sys/stat.h> //dla chmod
 
-char *send_file_signal = "!==!";
+// char *send_file_signal = "!==!";
 
 void send_file(const char *my_file, const char *filename, char id[30]) // pierwszy argument to plik, w którym zapisywane są własne wiadomości
 {

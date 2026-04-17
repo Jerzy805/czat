@@ -4,8 +4,9 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <sys/stat.h>
+#include <stdbool.h>
 #include "send_file.h"
-#incude "get_file.h"
+#include "get_file.h"
 
 #define MAX 256
 
@@ -143,18 +144,18 @@ void update_history(char msg[MAX]) // funkcja nadpisująca lokalne pliki po obu 
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 4) {
-        printf("Użycie: %s <twój_nick> <nick_drugiego_użytkownika>\n", argv[0]);
-        printf("Inne użycie: %s info\n", argv[0]);
-        printf("Jeżeli drugi użytkownik napisze coś w trakcie tego, jak coś pisałeś, wystarczy pisać dalej, tekst sam się uzupełni.\n");
-        if (argc == 2 && strcmp(argv[1], "info") == 0)
-        {
-            // tu trzeba dać dokładną instrukcję obsługi, jako że będą też czaty grupowe
-            return 0;
-        }
+    // if (argc != 4) {
+    //     printf("Użycie: %s <twój_nick> <nick_drugiego_użytkownika>\n", argv[0]);
+    //     printf("Inne użycie: %s info\n", argv[0]);
+    //     printf("Jeżeli drugi użytkownik napisze coś w trakcie tego, jak coś pisałeś, wystarczy pisać dalej, tekst sam się uzupełni.\n");
+    //     if (argc == 2 && strcmp(argv[1], "info") == 0)
+    //     {
+    //         // tu trzeba dać dokładną instrukcję obsługi, jako że będą też czaty grupowe
+    //         return 0;
+    //     }
         
-        return 1;
-    }
+    //     return 1;
+    // }
 
     strcpy(id, argv[3]); // zapisanie w id loginu do spk rozmówcy
 
@@ -201,7 +202,7 @@ int main(int argc, char *argv[]) {
 
                     send_file(my_file, file_to_send, id); // umiejscowienie pliku w odpowiednim miejscu
 
-                    sprintf(msg, "!==![%s]", file_send); // zakomunikowanie rozmówcy, że chcę mu coś wysłać
+                    sprintf(msg, "!==![%s]", file_to_send); // zakomunikowanie rozmówcy, że chcę mu coś wysłać
                 }
                 fprintf(f, "[%s] %s", my_name, msg);
                 fclose(f);

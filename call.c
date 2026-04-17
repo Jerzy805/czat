@@ -6,7 +6,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <locale.h>
-
+#include <pwd.h>
 
 char name[50], friend_name[50], id[20];
 char found_friends[20][50];
@@ -48,6 +48,29 @@ int show_existing()
     
     perror("Błąd otwierania /tmp/"); // Wypisze dokładny powód błędu systemu
     return 1;
+}
+
+void get_id(const char *filename)
+{
+    char cmd[100];
+    snprintf(cmd, sizeof(cmd), "getfacl %s", filename);
+
+    FILE *fp = popen(cmd, "r");
+    if (!fp) {
+        perror("popen");
+        return;
+    }
+
+    char line[100];
+
+    while (fgets(line, sizeof(line), fp)) {
+        if (strncmp(line, "user:", 5) == 0 && strstr(line, "::") == NULL) {
+            sscanf(line, "user:%19[^:]", id);
+            break;
+        }
+    }
+
+    pclose(fp);
 }
 
 void create_connection(const char *filename, const char *username)
@@ -149,6 +172,8 @@ int main()
             char filename[60];
             
             sprintf(filename, "/tmp/chat_%s-%s", name, friend_name);
+
+            get_id(filename);
             
             create_connection(filename, id);
             
@@ -165,8 +190,16 @@ int main()
                 printf("Niepoprawna opcja!\n");
                 return 0;
             }
-        
-            execlp("./chat", "chat", name, found_friends[option - 1], NULL);
+            
+            char filename[60];
+
+            snprintf(filename, sizeof(filename),
+                     "/tmp/chat_%s-%s", name, found_friends[option - 1]);
+            
+            get_id(filename);
+            
+            execlp("./chat", "chat", name, found_friends[option - 1], id, NULL);
+
         }
     
     return 0;
