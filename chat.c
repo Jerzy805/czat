@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <sys/stat.h>
+#include "send_file.h"
+#incude "get_file.h"
 
 #define MAX 256
 
@@ -11,6 +13,16 @@ char my_file[150];
 char other_file[150];
 char full_file[150];
 char my_name[50];
+char friend_name[50];
+char id[20];
+char *send_file_signal = "!==!";
+
+void send_file_handler()
+{
+    
+
+
+}
 
 void writer(char line[MAX]) // funkcja zapisująca lokalnie całą historię rozmowy
 {
@@ -86,7 +98,7 @@ void update_history(char msg[MAX]) // funkcja nadpisująca lokalne pliki po obu 
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 3) {
+    if (argc != 4) {
         printf("Użycie: %s <twój_nick> <nick_drugiego_użytkownika>\n", argv[0]);
         printf("Inne użycie: %s info\n", argv[0]);
         printf("Jeżeli drugi użytkownik napisze coś w trakcie tego, jak coś pisałeś, wystarczy pisać dalej, tekst sam się uzupełni.\n");
@@ -98,6 +110,10 @@ int main(int argc, char *argv[]) {
         
         return 1;
     }
+
+    strcpy(id, argv[3]); // zapisanie w id loginu do spk rozmówcy
+
+    strcpy(friend_name, argv[2]);
 
     strcpy(my_name, argv[1]);
 
@@ -132,6 +148,16 @@ int main(int argc, char *argv[]) {
         if (fgets(msg, MAX, stdin) != NULL) {
             FILE *f = fopen(my_file, "a");
             if (f != NULL) {
+                if (strcmp(msg, send_file_signal)) // wychwycenie twojej chęci wysłania pliku
+                {
+                    char *file_to_send = malloc(50);
+                    printf("Podaj nazwę pliku:\n");
+                    scanf("%s", file_to_send);
+
+                    send_file(my_file, file_to_send, id); // umiejscowienie pliku w odpowiednim miejscu
+
+                    sprintf()
+                }
                 fprintf(f, "[%s] %s", my_name, msg);
                 fclose(f);
                 update_history(msg);
@@ -140,3 +166,4 @@ int main(int argc, char *argv[]) {
     }
     return 0;
 }
+ // other_

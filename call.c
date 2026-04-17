@@ -8,7 +8,7 @@
 #include <locale.h>
 
 
-char name[50], friend_name[50], id[17];
+char name[50], friend_name[50], id[20];
 char found_friends[20][50];
 
 int show_existing()
@@ -152,7 +152,7 @@ int main()
             
             create_connection(filename, id);
             
-            execlp("./chat", "chat", name, friend_name, NULL);
+            execlp("./chat", "chat", name, friend_name, id, NULL);
         }
         else if(option < 0)
         {
