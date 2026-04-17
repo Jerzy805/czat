@@ -149,7 +149,9 @@ int main()
             }
         }
         
-        printf("%d. Nowy czat, i =%d\n", i+1, i);
+        printf("%d. Nowy czat\n", i+1);
+        printf("%d. Hostuj czat grupowy\n", i+2);
+        printf("%d. Dołącz do czatu grupowego\n", i+3);
         
         printf("Żeby usunąć daną konwersację, wybierz jej numer i wpisz ze znakiem -\n");
         printf("Żeby przesłać plik, w konwersacji użyj komendy: !==!, a następnie wprowadź nazwę pliku\n");
@@ -176,6 +178,77 @@ int main()
             create_connection(filename, id);
             
             execlp("./chat", "chat", name, friend_name, id, NULL);
+        }
+        else if (option == (i+2))
+        {
+            // obsługa hostowania czatu grupowego
+
+            char user_ids[30][20];
+            char nicks[30][20];
+            char pauses[25];
+            memset(pauses, '-', sizeof(pauses) - 1);
+            pauses[sizeof(pauses) - 1] = '\0'; 
+
+            int j, option, counter = 0;
+
+            for (j = 0; j < 30; j++)
+            {
+                system("clear");
+                printf("Wybierz opcję:\n");
+                printf("%s\n", pauses);
+                printf("1. Dodaj nowego użytkownika\n");
+                printf("2. Zakończ dodawanie użytkowników\n");
+
+                scanf("%d", &option);
+
+                if (option == 1)
+                {
+                    char nick[20], id[20];
+                    printf("Podaj nick użytkownika:\n");
+                    scanf("%19s", nick);
+                    printf("Podaj nazwę w spk użytkownika:\n");
+                    scanf("%19s", id);
+
+                    strcpy(user_ids[counter], id);
+                    strcpy(nicks[counter], nick);
+
+                    counter++;
+                }
+                else
+                {
+                    break;
+                }
+
+                if (counter == 0)
+                {
+                    perror("Nie dodałeś żadnych użytkowników\n");
+                    return 1;
+                }
+            }
+            
+            // parsowanie nicków i ids
+
+            char final_nicks[600]= "";
+            char final_ids[600] = "";
+
+            for (j = 0; j < counter; j++)
+            {
+                 sprintf(final_nicks + strlen(final_nicks), "%s ", nicks[j]);
+                 sprintf(final_ids + strlen(final_ids), "%s ", user_ids[j]);
+            }
+
+            //execlp("./grouphost", "grouphost", name, nicks, user_ids, NULL);
+
+            char command[1250];
+
+            sprintf(command, "./grouphost %s %s %s", name, final_nicks, final_ids);
+
+            system(command);
+            return 0;
+        }   
+        else if (option == (i+3))
+        {
+            // obsługa dołączenia do czatu grupowego
         }
         else if(option < 0)
         {
