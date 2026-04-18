@@ -6,9 +6,10 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <locale.h>
+#include <stdbool.h>
 #include <pwd.h>
 
-char name[50], friend_name[50], id[20], pauses[25];
+char name[50], friend_name[50], id[20]; // id -> chodzi o id drugiego rozmówcy lub hosta czatu grupowego
 char found_friends[20][50];
 
 int show_existing()
@@ -185,6 +186,7 @@ int main()
 
             char user_ids[30][20];
             char nicks[30][20];
+            char pauses[25];
             memset(pauses, '-', sizeof(pauses) - 1);
             pauses[sizeof(pauses) - 1] = '\0'; 
 
@@ -248,6 +250,47 @@ int main()
         else if (option == (i+3))
         {
             // obsługa dołączenia do czatu grupowego
+            
+            bool is_correct = false; // czy nazwa czatu jest poprawna
+            char full_chat_name[50];
+            
+            do
+            {
+                char chat_name[30];
+                printf("Podaj nazwę czatu:\n");
+                scanf("%s", &chat_name);
+                
+                // sprawdzenie czy istnieje taki czat
+                
+                sprintf(full_chat_name, "/tmp/chat_group-%s", chat_name);
+                
+                if (access(full_chat_name, F_OK) != 0)
+                {
+                    printf("Nie istnieje czat o tej nazwie, spróbuj ponownie\n");
+                }
+                else
+                    is_correct = true;
+                
+            } while (!is_correct);
+            
+            system("clear");
+
+            struct stat st;
+            
+            if (stat(full_chat_name, &st) == 0) {
+                struct passwd *pw = getpwuid(st.st_uid);
+            
+                if (pw != NULL) {
+                    snprintf(id, sizeof(id), "%s", pw->pw_name);
+                } else {
+                    printf("getpwuid failed\n");
+                }
+            } else {
+                perror("stat");
+            }
+            
+            execlp("./groupjoin", "groupjoin", name, id, full_chat_name, NULL);
+
         }
         else if(option < 0)
         {

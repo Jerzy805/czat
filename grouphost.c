@@ -7,8 +7,9 @@
 #include <stdbool.h>
 #define MAX 256
 
-char main_file[20];
+char main_file[50];
 const char* send_file_signal = "!==!";
+const char* add_new_user_signal = "!=";
 
 void print_pauses(int times)
 {
@@ -17,16 +18,16 @@ void print_pauses(int times)
     printf("\n");
 }
 
-void reader(void *arg)
+void reader(void *arg) // jako argument przekazywana nazwa pliku, do którego pisze dany gość
 {
     char *filename = (char *)arg;
     
     FILE *f;
     char line[MAX];
 
-    // Czekaj na plik kolegi (np. chat_emil-jerzy)
+    // Czekaj na plik gościa
     while ((f = fopen(filename, "r")) == NULL) {
-        //usleep(500000);
+        usleep(500000);
     }
 
     // Przeskocz do końca, żeby nie czytać historii przy wejściu
@@ -34,28 +35,17 @@ void reader(void *arg)
 
     while (1) {
         if (fgets(line, MAX, f) != NULL) {
-            //writer(line);
-            //if (check_msg(line))
-//             {
-//                 if (!file_handler())
-//                 {
-//                     printf("Nie przyjąłeś pliku\n");
-//                     char text[50];
-//                     sprintf(text, "[System] %s nie przyjął pliku", my_name);
-//                     append_text(text);
-//                 }
-//                 else
-//                 {
-//                     printf("Pomyślnie przyjąłeś plik\n");
-//                     char text[50];
-//                     sprintf(text, "[System] %s pomyślnie przyjął plik", my_name);
-//                     append_text(text);
-//                 }
-//             }
+            // tu była obsługa wysyłania pliku
             printf("\r\033[K%s> ", line); // Wyświetl wiadomość i przywróć znak zachęty
             fflush(stdout);
+            // utrwalenie wiadomości innych gości
+            FILE *temp = fopen(main_file, "a");
+            fprintf(temp, line);
+            fclose(temp);
         } else {
+        
             clearerr(f);
+            fflush(f);
             usleep(100000);
         }
     }
@@ -121,6 +111,23 @@ void create_connection(int users, char user_ids[users][20], char chat_name[20]) 
     }
 }
 
+void add_connection(char user[20], char name[20])
+{
+    char cmd[100];
+    snprintf(cmd, sizeof(cmd), "setfacl -m u:%s:r %s", user, main_file);
+
+    if (system(cmd) == -1)
+    {
+        perror("system");
+        return;
+    }
+    
+    pthread_t tid;
+    char filename[50];
+    sprintf(filename, "%s-%s", main_file, name);
+    pthread_create(&tid, NULL, reader, filename);
+}
+
 int main(int argc, char *argv[])
 {
     if (argc%2 != 0)
@@ -159,14 +166,20 @@ int main(int argc, char *argv[])
 
     create_connection(users, user_ids, chat_name);
     
-    printf("supcio, %d\n", users);
 
     // skopiowane z chat.c, kod do wysyłania wiadomości
     
+    char args[users][30];
+    pthread_t threads[users];
+    
+    for (int i = 0; i < users; i++)
+    {
+        sprintf(args[i], "%s-%s", main_file, nicks[i]);
+        pthread_create(&threads[i], NULL, reader, args[i]);
+    }
+
     int c;
     while ((c = getchar()) != '\n' && c != EOF);
-    
-    printf("supcio, %d\n", users);
 
     char msg[MAX];
     while (1) {
@@ -178,7 +191,20 @@ int main(int argc, char *argv[])
             msg[strcspn(msg, "\n")] = 0;
 
             FILE *f = fopen(main_file, "a");
-            if (f != NULL) {
+            if (f != NULL)
+            {
+                if (strcmp(msg, add_new_user_signal) == 0) // obsługa dodawania nowych ludzi
+                {
+                    char new_id[20], name[20];
+                    printf("Podaj nazwę w spk użytkownika:\n");
+                    scanf("%s", &new_id);
+                    printf("Podaj nick użytkownika:\n");
+                    scanf("%s", &name);
+                    
+                    add_connection(new_id, name);
+                    
+                    sprintf(msg, "[System] dodano nowego użytkownika %s", new_id);
+                }
                 
                 // Zapisujemy do pliku (dodajemy \n, bo usunęliśmy go wyżej)
                 fprintf(f, "[%s] %s\n", my_name, msg);
@@ -187,7 +213,7 @@ int main(int argc, char *argv[])
                 // Do historii lokalnej też z nową linią
                 char hist_msg[MAX+10];
                 sprintf(hist_msg, "%s\n", msg);
-                //update_history(hist_msg); // nie wiem czy w czacie grupowym takie coś ma w ogóle sens
+                //update_history(hist_msg); // nie wiem czy w czasie grupowym takie coś ma w ogóle sens
             }
         }
     }
