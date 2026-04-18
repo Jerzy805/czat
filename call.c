@@ -8,7 +8,7 @@
 #include <locale.h>
 #include <pwd.h>
 
-char name[50], friend_name[50], id[20];
+char name[50], friend_name[50], id[20], pauses[25];
 char found_friends[20][50];
 
 int show_existing()
@@ -185,7 +185,6 @@ int main()
 
             char user_ids[30][20];
             char nicks[30][20];
-            char pauses[25];
             memset(pauses, '-', sizeof(pauses) - 1);
             pauses[sizeof(pauses) - 1] = '\0'; 
 
