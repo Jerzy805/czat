@@ -18,6 +18,7 @@ char friend_name[50];
 char id[20];
 char sent_file_name[50];
 char *send_file_signal = "!==!";
+char file_to_send[50];
 
 bool check_msg(const char* msg)
 {
@@ -59,6 +60,7 @@ bool file_handler()
 
     if (option == 'y')
     {
+        printf("Rozpoczęto pobieranie pliku...\n");
         get_file(sent_file_name);
         return true;
     }
@@ -124,16 +126,23 @@ void *reader(void *arg) {
                 {
                     printf("Nie przyjąłeś pliku\n");
                     char text[50];
-                    sprintf(text, "[System] %s nie przyjął pliku", my_name);
+                    sprintf(text, "[System] Plik: nie przyjęto");
                     append_text(text);
                 }
                 else
                 {
                     printf("Pomyślnie przyjąłeś plik\n");
                     char text[50];
-                    sprintf(text, "[System] %s pomyślnie przyjął plik", my_name);
+                    sprintf(text, "[System] Plik: pomyślnie przyjęto plik");
                     append_text(text);
                 }
+            }
+            if (strncmp(line, "[System] Plik:", strlen("[System] Plik:")) == 0) // plik został pomyślnie pobrany
+            {
+                char rmcmd[100];
+                sprintf(rmcmd, "rm /tmp/%s -f", file_to_send);
+                printf("%s", rmcmd);
+                system(rmcmd);
             }
             printf("\r\033[K%s> ", line); // Wyświetl wiadomość i przywróć znak zachęty
             fflush(stdout);
@@ -162,19 +171,8 @@ void update_history(char msg[MAX]) // funkcja nadpisująca lokalne pliki po obu 
     }
 }
 
-int main(int argc, char *argv[]) {
-    // if (argc != 4) {
-    //     printf("Użycie: %s <twój_nick> <nick_drugiego_użytkownika>\n", argv[0]);
-    //     printf("Inne użycie: %s info\n", argv[0]);
-    //     printf("Jeżeli drugi użytkownik napisze coś w trakcie tego, jak coś pisałeś, wystarczy pisać dalej, tekst sam się uzupełni.\n");
-    //     if (argc == 2 && strcmp(argv[1], "info") == 0)
-    //     {
-    //         // tu trzeba dać dokładną instrukcję obsługi, jako że będą też czaty grupowe
-    //         return 0;
-    //     }
-        
-    //     return 1;
-    // }
+int main(int argc, char *argv[])
+{
 
     strcpy(id, argv[3]); // zapisanie w id loginu do spk rozmówcy
 
@@ -209,26 +207,21 @@ int main(int argc, char *argv[]) {
 
             FILE *f = fopen(my_file, "a");
             if (f != NULL) {
-                // Sprawdzamy czy wpisano DOKŁADNIE sygnał wysyłki
                 if (strcmp(msg, send_file_signal) == 0) 
                 {
-                    char file_to_send[50]; // Lepiej statycznie lub free() później
                     printf("Podaj nazwę pliku: ");
                     scanf("%49s", file_to_send);
-                    
-                    // CZYŚCIMY BUFOR po scanf, aby następne fgets nie zwariowało
+
                     int c;
                     while ((c = getchar()) != '\n' && c != EOF); 
 
                     send_file(my_file, file_to_send, id);
                     sprintf(msg, "!==!%s", file_to_send);
                 }
-                
-                // Zapisujemy do pliku (dodajemy \n, bo usunęliśmy go wyżej)
+
                 fprintf(f, "[%s] %s\n", my_name, msg);
                 fclose(f);
                 
-                // Do historii lokalnej też z nową linią
                 char hist_msg[MAX+10];
                 sprintf(hist_msg, "%s\n", msg);
                 update_history(hist_msg);

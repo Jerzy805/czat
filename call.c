@@ -111,6 +111,10 @@ void delete_convo(int convo)
     
     sprintf(cmd, "rm /tmp/chat_%s-%s", name, person);
     
+    system(cmd);
+    
+    sprintf(cmd, "rm /tmp/'chat_%s-%s!full'", name, person);
+    
     int status = system(cmd);
 
     if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
@@ -121,7 +125,6 @@ void delete_convo(int convo)
     {
         printf("Nie udało się usunąć pliku\n");
     }
-
 }
 
 int main()
@@ -292,7 +295,7 @@ int main()
             execlp("./groupjoin", "groupjoin", name, id, full_chat_name, NULL);
 
         }
-        else if(option < 0)
+        else if(option < 0 && option >= -1-i)
         {
             delete_convo(-option - 1);
         }
