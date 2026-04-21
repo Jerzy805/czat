@@ -190,8 +190,8 @@ int main(int argc, char *argv[])
     show_last_history();
 
     printf("Rozpoczęto czat z %s\n", argv[2]);
-    printf("Twój plik: %s\n", my_file);
-    printf("Czytam z:  %s\n", other_file);
+    //printf("Twój plik: %s\n", my_file);
+    //printf("Czytam z:  %s\n", other_file);
 
     pthread_t tid;
     pthread_create(&tid, NULL, reader, NULL);
