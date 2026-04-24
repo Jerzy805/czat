@@ -6,8 +6,10 @@
 #include <sys/stat.h>
 #include <stdbool.h>
 #define MAX 256
+#define GROUP_FILE_BUF 128
+#define MEMBER_FILE_BUF 160
 
-char main_file[50];
+char main_file[GROUP_FILE_BUF];
 const char* send_file_signal = "!==!";
 const char* add_new_user_signal = "!=";
 
@@ -18,7 +20,7 @@ void print_pauses(int times)
     printf("\n");
 }
 
-void reader(void *arg) // jako argument przekazywana nazwa pliku, do którego pisze dany gość
+void *reader(void *arg) // jako argument przekazywana nazwa pliku, do którego pisze dany gość
 {
     char *filename = (char *)arg;
     
@@ -29,6 +31,7 @@ void reader(void *arg) // jako argument przekazywana nazwa pliku, do którego pi
     while ((f = fopen(filename, "r")) == NULL) {
         usleep(500000);
     }
+    free(filename);//xDDDD ALE niech bedzie ten while 
 
     // Przeskocz do końca, żeby nie czytać historii przy wejściu
     fseek(f, 0, SEEK_END);
@@ -40,8 +43,10 @@ void reader(void *arg) // jako argument przekazywana nazwa pliku, do którego pi
             fflush(stdout);
             // utrwalenie wiadomości innych gości
             FILE *temp = fopen(main_file, "a");
-            fprintf(temp, line);
-            fclose(temp);
+            if (temp != NULL) {//tu sie wywalalo jak zle wpisze
+                fputs(line, temp);
+                fclose(temp);
+            }
         } else {
         
             clearerr(f);
@@ -54,8 +59,8 @@ void reader(void *arg) // jako argument przekazywana nazwa pliku, do którego pi
 
 void create_connection(int users, char user_ids[users][20], char chat_name[20]) // utworzenie pliku głównego czatu i nadanie uprawnień
 {
-    char filename[20];
-    sprintf(filename, "/tmp/chat_group-%s", chat_name);
+    char filename[GROUP_FILE_BUF];
+    snprintf(filename, sizeof(filename), "/tmp/chat_group-%s", chat_name);
     strcpy(main_file, filename);
 
     if (access(filename, F_OK) == 0)
@@ -73,7 +78,7 @@ void create_connection(int users, char user_ids[users][20], char chat_name[20]) 
         {
             printf("Nadaj nazwę czatu grupowego:\n");
             scanf("%19s", chat_name);
-            sprintf(filename, "/tmp/chat_group-%s", chat_name);
+            snprintf(filename, sizeof(filename), "/tmp/chat_group-%s", chat_name);
             strcpy(main_file, filename);
         } 
     }
@@ -87,7 +92,7 @@ void create_connection(int users, char user_ids[users][20], char chat_name[20]) 
     }
     fclose(f);
 
-    // 2. ustawienie chmod 600 (na wszelki wypadek)
+    // 2. ustawienie chmod 600 (na wszelki wypadek), czm nie 0644?
     if (chmod(filename, 0600) == -1)
     {
         perror("chmod");
@@ -100,8 +105,8 @@ void create_connection(int users, char user_ids[users][20], char chat_name[20]) 
 
     for (i = 0; i < users; i++)
     {
-        char cmd[100];
-        snprintf(cmd, sizeof(cmd), "setfacl -m u:%s:r %s", user_ids, filename);
+        char cmd[200];
+        snprintf(cmd, sizeof(cmd), "setfacl -m u:%s:r %s", user_ids[i], filename);
 
         if (system(cmd) == -1)
         {
@@ -113,7 +118,7 @@ void create_connection(int users, char user_ids[users][20], char chat_name[20]) 
 
 void add_connection(char user[20], char name[20])
 {
-    char cmd[100];
+    char cmd[200];
     snprintf(cmd, sizeof(cmd), "setfacl -m u:%s:r %s", user, main_file);
 
     if (system(cmd) == -1)
@@ -123,9 +128,23 @@ void add_connection(char user[20], char name[20])
     }
     
     pthread_t tid;
-    char filename[50];
-    sprintf(filename, "%s-%s", main_file, name);
-    pthread_create(&tid, NULL, reader, filename);
+    char *filename = malloc(MEMBER_FILE_BUF);
+    if (filename == NULL)
+    {
+        perror("malloc");
+        return;
+    }
+
+    snprintf(filename, MEMBER_FILE_BUF, "%s-%s", main_file, name);
+
+    if (pthread_create(&tid, NULL, reader, filename) != 0)
+    {
+        perror("pthread_create");
+        free(filename);
+        return;
+    }
+
+    pthread_detach(tid);
 }
 
 int main(int argc, char *argv[])
@@ -150,8 +169,6 @@ int main(int argc, char *argv[])
 
     // wczytywanie nicków użytkowników
 
-    int i;
-
     // wczytywanie nicków
     for (int i = 0; i < users; i++)
     {
@@ -169,13 +186,25 @@ int main(int argc, char *argv[])
 
     // skopiowane z chat.c, kod do wysyłania wiadomości
     
-    char args[users][30];
     pthread_t threads[users];
     
     for (int i = 0; i < users; i++)
     {
-        sprintf(args[i], "%s-%s", main_file, nicks[i]);
-        pthread_create(&threads[i], NULL, reader, args[i]);
+        char *filename = malloc(MEMBER_FILE_BUF);
+        if (filename == NULL)
+        {
+            perror("malloc");
+            return 1;
+        }
+
+        snprintf(filename, MEMBER_FILE_BUF, "%s-%s", main_file, nicks[i]);
+
+        if (pthread_create(&threads[i], NULL, reader, filename) != 0)
+        {
+            perror("pthread_create");
+            free(filename);
+            return 1;
+        }
     }
 
     int c;
@@ -197,9 +226,12 @@ int main(int argc, char *argv[])
                 {
                     char new_id[20], name[20];
                     printf("Podaj nazwę w spk użytkownika:\n");
-                    scanf("%s", &new_id);
+                    scanf("%19s", new_id);
                     printf("Podaj nick użytkownika:\n");
-                    scanf("%s", &name);
+                    scanf("%19s", name);
+
+                    int c;
+                    while ((c = getchar()) != '\n' && c != EOF);//bo tu musi musi poczekac na cokolwiek
                     
                     add_connection(new_id, name);
                     
