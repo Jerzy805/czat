@@ -3,14 +3,20 @@ CFLAGS = -Wall -Wextra -pedantic -pthread
 
 CHAT_TARGET = chat
 CALL_TARGET = call
+GROUPHOST_TARGET = grouphost
+GROUPJOIN_TARGET = groupjoin
 
-CHAT_SRC = chat.c commands.c file_send.c
+CHAT_SRC = chat.c send_file.c get_file.c
 CALL_SRC = call.c
+GROUPHOST_SRC = grouphost.c
+GROUPJOIN_SRC = groupjoin.c
 
 CHAT_OBJ = $(CHAT_SRC:.c=.o)
 CALL_OBJ = $(CALL_SRC:.c=.o)
+GROUPHOST_OBJ = $(GROUPHOST_SRC:.c=.o)
+GROUPJOIN_OBJ = $(GROUPJOIN_SRC:.c=.o)
 
-all: $(CHAT_TARGET) $(CALL_TARGET)
+all: $(CHAT_TARGET) $(CALL_TARGET) $(GROUPHOST_TARGET) $(GROUPJOIN_TARGET)
 
 $(CHAT_TARGET): $(CHAT_OBJ)
 	$(CC) $(CFLAGS) -o $@ $(CHAT_OBJ)
@@ -18,10 +24,16 @@ $(CHAT_TARGET): $(CHAT_OBJ)
 $(CALL_TARGET): $(CALL_OBJ)
 	$(CC) $(CFLAGS) -o $@ $(CALL_OBJ)
 
+$(GROUPHOST_TARGET): $(GROUPHOST_OBJ)
+	$(CC) $(CFLAGS) -o $@ $(GROUPHOST_OBJ)
+
+$(GROUPJOIN_TARGET): $(GROUPJOIN_OBJ)
+	$(CC) $(CFLAGS) -o $@ $(GROUPJOIN_OBJ)
+
 %.o: %.c
 	$(CC) $(CFLAGS) -c $<
 
 clean:
-	rm -f $(CHAT_OBJ) $(CALL_OBJ) $(CHAT_TARGET) $(CALL_TARGET)
+	rm -f $(CHAT_OBJ) $(CALL_OBJ) $(GROUPHOST_OBJ) $(GROUPJOIN_OBJ) $(CHAT_TARGET) $(CALL_TARGET) $(GROUPHOST_TARGET) $(GROUPJOIN_TARGET)
 
 .PHONY: all clean
