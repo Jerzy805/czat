@@ -6,13 +6,28 @@
 #include <string>
 #include <cstdio>
 #include <thread>
+#include <filesystem>
+#include <cstring>
 #include "send_file.h"
 #include "get_file.h"
 
 using namespace std;
+namespace fs = filesystem;
 
 string my_file, friend_file, file_to_send, sent_file, friend_name, name, id;
 const string send_file_signal = "!==!";
+
+bool is_str_empty(string line)
+{
+    if (line.empty())
+        return true;
+    for (char c : line)
+    {
+        if (!isspace(c))
+            return false;
+    }
+    return true;
+}
 
 void writer(string line)
 {
@@ -176,9 +191,17 @@ int main(int argc, char* argv[])
     {
         if (check_msg(line))
         {
-            send_file(sent_file, id);
-        } 
-        append_text(line);
+            // sprawdzenie, czy taki plik w ogóle istnieje
+            if (!(fs::exists(sent_file)))
+            {
+                cout << "Podany plik nie istnieje!\n";
+                line = "";
+            }
+            else
+                send_file(sent_file, id);
+        }
+        if (!is_str_empty(line))
+            append_text(line);
         cout << "> ";
     }
 
