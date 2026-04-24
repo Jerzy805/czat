@@ -1,0 +1,186 @@
+#include <sys/inotify.h>
+#include <unistd.h>
+#include <limits.h>
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <cstdio>
+#include <thread>
+#include "send_file.h"
+#include "get_file.h"
+
+using namespace std;
+
+string my_file, friend_file, file_to_send, sent_file, friend_name, name, id;
+const string send_file_signal = "!==!";
+
+void writer(string line)
+{
+
+}
+
+bool check_msg(string msg)
+{
+    size_t pos = msg.find(send_file_signal);
+    if (pos != string::npos)
+    {
+        sent_file = msg.substr(pos + send_file_signal.length());
+        return true;
+    }
+        
+    return false;
+}
+
+bool file_handler()
+{
+    cout << "[System] " << friend_name << " chce ci wysłać plik " << sent_file << ", kontynuować [y/n]?\n";
+    cout.flush();
+    string answer;
+    cin >> answer;
+
+    if (answer[0] == 'y')
+    {
+        cout << "Rozpoczęto pobieranie pliku...\n";
+        get_file(sent_file);
+        return true;
+    }
+    return false;
+}
+
+void append_text(const string& text)
+{
+    string prefix = "[" + name + "] ";
+    ofstream f(my_file, ios::app);
+    if (!f.is_open())
+    {
+        perror("ofstream");
+        return;
+    }
+
+    f << prefix << text << '\n';
+    f.close();
+}
+
+void* reader(void* arg) // najważniejsza funkcja, odczytuje wiadomości drugiego rozmówcy
+{
+    // ?? czekaj aż plik się pojawi
+    ifstream f;
+    while (true)
+    {
+        f.open(friend_file);
+        if (f.is_open())
+            break;
+
+        sleep(1);
+    }
+
+    // ?? ustaw się na koniec (jak tail -f)
+    f.seekg(0, ios::end);
+
+    // ?? inotify init
+    int fd = inotify_init();
+    if (fd < 0)
+    {
+        perror("inotify_init");
+        return nullptr;
+    }
+
+    int wd = inotify_add_watch(fd, friend_file.c_str(), IN_MODIFY);
+    if (wd == -1)
+    {
+        perror("inotify_add_watch");
+        close(fd);
+        return nullptr;
+    }
+
+    char buffer[4096];
+
+    while (true)
+    {
+        // ? czekaj na zmianę w pliku
+        int length = read(fd, buffer, sizeof(buffer));
+        if (length < 0)
+        {
+            perror("read");
+            break;
+        }
+
+        // ?? po zmianie — czytaj nowe linie
+        string line;
+        while (getline(f, line))
+        {
+            writer(line);
+
+            if (check_msg(line))
+            {
+                if (!file_handler())
+                {
+                    printf("Nie przyjąłeś pliku\n");
+                    append_text("[System] Plik: nie przyjęto");
+                }
+                else
+                {
+                    printf("Pomyślnie przyjąłeś plik\n");
+                    append_text("[System] Plik: pomyślnie przyjęto plik");
+                }
+            }
+
+            if (line.find("[System] Plik:") != string::npos)
+            {
+                string command = "rm /tmp/" + sent_file + " -f";
+                system(command.c_str());
+            }
+
+            cout << "\r\033[K";        // usuń prompt (jeśli jest)
+            cout << line << endl;     // wypisz wiadomość
+            cout << "> " << flush;    // przywróć prompt
+
+        }
+
+        // ?? reset EOF flagi (bo getline dobił do końca)
+        f.clear();
+    }
+
+    // cleanup
+    inotify_rm_watch(fd, wd);
+    close(fd);
+
+    return nullptr;
+}
+
+int main(int argc, char* argv[])
+{
+    if (argc != 4)
+    {
+        cout << "Błąd krytyczny: nieprawidłowa liczba argumentów programu " << argv[0] << endl;
+        return 1;
+    }
+
+    name = argv[1];
+    friend_name = argv[2];
+    id = argv[3];
+
+    string prefix = "/tmp/chat_";
+    my_file = prefix + name + "-" + friend_name;
+    friend_file = prefix + friend_name + "-" + name;
+
+    cout << "Rozpoczęto czat z " << friend_name << endl;
+    cout << "Czytam z: " << friend_file << endl;
+    cout << "Zapisuję do: " << my_file << endl;
+    cout << "> ";
+
+    thread t(reader, nullptr);
+
+    string line;
+    while (getline(cin, line))
+    {
+        if (check_msg(line))
+        {
+            send_file(sent_file, id);
+        } 
+        append_text(line);
+        cout << "> ";
+    }
+
+    t.join();
+}
