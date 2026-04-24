@@ -1,209 +1,189 @@
-#include <sys/inotify.h>
-#include <unistd.h>
-#include <limits.h>
-#include <fstream>
 #include <iostream>
-#include <string>
-#include <cstdio>
-#include <thread>
 #include <filesystem>
-#include <cstring>
-#include "send_file.h"
-#include "get_file.h"
+#include <string>
+#include <fstream>
+#include <sys/stat.h>
+#include <cstdio>
+#include <unistd.h>
+#include <array>
+#include <memory>
 
 using namespace std;
 namespace fs = filesystem;
+using namespace fs;
 
-string my_file, friend_file, file_to_send, sent_file, friend_name, name, id;
-const string send_file_signal = "!==!";
+string name;
+string found_friends[20];
+int count; // liczba znalezionych przyjaciół
 
-bool is_str_empty(string line)
+int get_existing() // pobranie istniejących konwersacji
 {
-    if (line.empty())
-        return true;
-    for (char c : line)
+    string prefix = "chat_" + name + "-";
+    int counter = 0; // zwracana wartość, liczba znalezionych konwersacji
+    
+    // szukanie plików po prefixie
+
+    for (const auto& entry : directory_iterator("/tmp/"))
     {
-        if (!isspace(c))
-            return false;
-    }
-    return true;
-}
+        string filename = entry.path().filename().string();
 
-void writer(string line)
-{
-
-}
-
-bool check_msg(string msg)
-{
-    size_t pos = msg.find(send_file_signal);
-    if (pos != string::npos)
-    {
-        sent_file = msg.substr(pos + send_file_signal.length());
-        return true;
-    }
-        
-    return false;
-}
-
-bool file_handler()
-{
-    cout << "[System] " << friend_name << " chce ci wysłać plik " << sent_file << ", kontynuować [y/n]?\n";
-    cout.flush();
-    string answer;
-    cin >> answer;
-
-    if (answer[0] == 'y')
-    {
-        cout << "Rozpoczęto pobieranie pliku...\n";
-        get_file(sent_file);
-        return true;
-    }
-    return false;
-}
-
-void append_text(const string& text)
-{
-    string prefix = "[" + name + "] ";
-    ofstream f(my_file, ios::app);
-    if (!f.is_open())
-    {
-        perror("ofstream");
-        return;
-    }
-
-    f << prefix << text << '\n';
-    f.close();
-}
-
-void* reader(void* arg) // najważniejsza funkcja, odczytuje wiadomości drugiego rozmówcy
-{
-    // ?? czekaj aż plik się pojawi
-    ifstream f;
-    while (true)
-    {
-        f.open(friend_file);
-        if (f.is_open())
-            break;
-
-        sleep(1);
-    }
-
-    // ?? ustaw się na koniec (jak tail -f)
-    f.seekg(0, ios::end);
-
-    // ?? inotify init
-    int fd = inotify_init();
-    if (fd < 0)
-    {
-        perror("inotify_init");
-        return nullptr;
-    }
-
-    int wd = inotify_add_watch(fd, friend_file.c_str(), IN_MODIFY);
-    if (wd == -1)
-    {
-        perror("inotify_add_watch");
-        close(fd);
-        return nullptr;
-    }
-
-    char buffer[4096];
-
-    while (true)
-    {
-        // ? czekaj na zmianę w pliku
-        int length = read(fd, buffer, sizeof(buffer));
-        if (length < 0)
+        if (filename.rfind(prefix, 0) == 0 && filename.find('!') == string::npos)
         {
-            perror("read");
-            break;
+            string found_friend = filename.substr(prefix.length());
+            found_friends[counter++] = found_friend;
+
+            if (counter >= 20)
+                return counter;
         }
-
-        // ?? po zmianie — czytaj nowe linie
-        string line;
-        while (getline(f, line))
-        {
-            writer(line);
-
-            if (check_msg(line))
-            {
-                if (!file_handler())
-                {
-                    printf("Nie przyjąłeś pliku\n");
-                    append_text("[System] Plik: nie przyjęto");
-                }
-                else
-                {
-                    printf("Pomyślnie przyjąłeś plik\n");
-                    append_text("[System] Plik: pomyślnie przyjęto plik");
-                }
-            }
-
-            if (line.find("[System] Plik:") != string::npos)
-            {
-                string command = "rm /tmp/" + sent_file + " -f";
-                system(command.c_str());
-            }
-
-            cout << "\r\033[K";        // usuń prompt (jeśli jest)
-            cout << line << endl;     // wypisz wiadomość
-            cout << "> " << flush;    // przywróć prompt
-
-        }
-
-        // ?? reset EOF flagi (bo getline dobił do końca)
-        f.clear();
     }
-
-    // cleanup
-    inotify_rm_watch(fd, wd);
-    close(fd);
-
-    return nullptr;
+    
+    if (counter == 0)
+    {
+        cout << "Nie znaleziono żadnych zapisów konwersacji\n";
+    }
+    
+    return counter;
 }
 
-int main(int argc, char* argv[])
+string get_id(const string& filename)
 {
-    if (argc != 4)
+    string cmd = "getfacl " + filename;
+
+    array<char, 256> buffer;
+    string result;
+
+    // popen w wersji "bezpiecznej" (RAII)
+    unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
+    if (!pipe)
     {
-        cout << "Błąd krytyczny: nieprawidłowa liczba argumentów programu " << argv[0] << endl;
+        perror("popen");
+        return "";
+    }
+
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr)
+    {
+        string line = buffer.data();
+
+        if (line.rfind("user:", 0) == 0 && line.find("::") == string::npos)
+        {
+            // wyciągnięcie id
+            size_t start = 5; // po "user:"
+            size_t end = line.find(':', start);
+
+            if (end != string::npos)
+            {
+                return line.substr(start, end - start);
+            }
+        }
+    }
+
+    return "";
+}
+
+int delete_convo(int index)
+{
+    if(index >= count)
+    {
         return 1;
     }
 
-    name = argv[1];
-    friend_name = argv[2];
-    id = argv[3];
+    string filename = "/tmp/chat_" + name + "-" + found_friends[index];
 
-    string prefix = "/tmp/chat_";
-    my_file = prefix + name + "-" + friend_name;
-    friend_file = prefix + friend_name + "-" + name;
-
-    cout << "Rozpoczęto czat z " << friend_name << endl;
-    cout << "Czytam z: " << friend_file << endl;
-    cout << "Zapisuję do: " << my_file << endl;
-    cout << "> ";
-
-    thread t(reader, nullptr);
-
-    string line;
-    while (getline(cin, line))
+    if (remove(filename.c_str()) == 0)
     {
-        if (check_msg(line))
-        {
-            // sprawdzenie, czy taki plik w ogóle istnieje
-            if (!(fs::exists(sent_file)))
-            {
-                cout << "Podany plik nie istnieje!\n";
-                line = "";
-            }
-            else
-                send_file(sent_file, id);
-        }
-        if (!is_str_empty(line))
-            append_text(line);
-        cout << "> ";
+        return 0;
+    }
+    return 1;
+}
+
+int create_connection(string friend_name, string id) // tworzy plik i nadaje uprawnienia
+{
+    string filename = "/tmp/chat_" + name + "-" + friend_name;
+
+    ofstream f(filename);
+    f.close();
+
+    // odebranie wszelkich praw wszystkim
+    if (chmod(filename.c_str(), 0600) == -1)
+    {
+        perror("chmod");
+        return 1;
     }
 
-    t.join();
+    string cmd = "setfacl -m u:" + id + ":r " + filename;
+    
+    if (system(cmd.c_str()) == -1)
+    {
+        perror("system");
+        return 1;
+    }
+
+    return 0;
+}
+
+int main()
+{
+    cout << "Podaj swój nick:\n";
+    cin >> name;
+
+    count = get_existing();
+
+    // tworzenie menu
+
+    system("clear");
+    int i = 0, option;
+
+    if (count > 0)
+        {
+            for (i = 0; i < count; i++)
+                cout << i + 1 << ". " << found_friends[i] << endl;
+        }
+
+        cout << i + 1 << ". Nowy czat\n";
+        cout << i + 2 << ". Hostuj czat grupowy\n";
+        cout << i + 3 << ". Dołącz do czatu grupowego\n";
+
+        cin >> option;
+
+        system("clear");
+
+        if (option == i + 1) // nowy czat
+        {
+            string friend_name, id;
+            cout << "Podaj nick rozmówcy:\n";
+            cin >> friend_name;
+            cout << "Podaj jego nazwę w spk:\n";
+            cin >> id;
+
+            create_connection(friend_name, id);
+
+            execlp("./chat", "chat", name.c_str(), friend_name.c_str(), id.c_str(), NULL);
+        }
+        else if (option == 1 + 2) // hostowanie czatu grupowego
+        {
+
+        }
+        else if (option == 1 + 3) // dołączanie do czatu grupowego
+        {
+
+        }
+        else if (option <= i && option > 0) // otwieranie istniejącej konwersacji
+        {
+            string filename = "/tmp/chat_" + name + "-" + found_friends[option - 1];
+
+            execlp("./chat", "chat", name.c_str(), found_friends[option - 1].c_str(), get_id(filename).c_str(), NULL);
+        }
+        else if (option < 0) // usuwanie konwersacji
+        {
+            if (delete_convo(-option - 1) == 0)
+            {
+                cout << "Pomyślnie usunięto konwersację z " << found_friends[-option - 1] << endl;
+                count = get_existing();
+            }
+            else
+            {
+                cout << "Niepoprawna komenda\n";
+                return 1;
+            }
+        }
 }
