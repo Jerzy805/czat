@@ -123,6 +123,8 @@ int create_connection(string friend_name, string id) // tworzy plik i nadaje upr
 
 int main()
 {
+    setlocale(LC_ALL, "");
+    system("clear");
     cout << "Podaj swój nick:\n";
     cin >> name;
 
@@ -134,14 +136,15 @@ int main()
     int i = 0, option;
 
     if (count > 0)
-        {
-            for (i = 0; i < count; i++)
-                cout << i + 1 << ". " << found_friends[i] << endl;
-        }
+    {
+        for (i = 0; i < count; i++)
+        cout << i + 1 << ". " << found_friends[i] << endl;
+    }    
 
         cout << i + 1 << ". Nowy czat\n";
         cout << i + 2 << ". Hostuj czat grupowy\n";
         cout << i + 3 << ". Dołącz do czatu grupowego\n";
+        cout << "Aby wysłać plik, wpisz !==!, a następnie nazwę pliku, np !==!video.mp4\n";
 
         cin >> option;
 
@@ -159,11 +162,55 @@ int main()
 
             execlp("./chat", "chat", name.c_str(), friend_name.c_str(), id.c_str(), NULL);
         }
-        else if (option == 1 + 2) // hostowanie czatu grupowego
+        else if (option == i + 2) // hostowanie czatu grupowego
         {
+            string nicks[20];
+            string ids[20];
+            int choice, j;
+            for (j = 0; j < 20; j++)
+            {
+                system("clear");
+                cout << "----------------------------\n";
+                cout << "1. Dodaj nowego użytkownika\n";
+                cout << "2. Zakończ dodawanie użytkowników\n";
+                cout << "----------------------------\n";
+
+                if (!(cin >> choice)) // Sprawdzamy czy wczytano liczbę
+                { 
+                    cin.clear();
+                    cin.ignore(1000, '\n');
+                    continue;
+                }
+
+                if (choice == 2)
+                {
+                    if (j == 0)
+                    {
+                        cout << "Nie dodałeś żadnych użytkowników do czatu grupowego!\n";
+                        return 1;
+                    }
+                    break;
+                }
+
+                cout << "Podaj nick użytkownika:\n";
+                cin >> nicks[j];
+                cout << "Podaj jego nazwę w spk:\n";
+                cin >> ids[j];
+            }
+
+            string final_nicks = "", final_ids = "";
+
+            for (int k = 0; k < j; k++)
+            {
+                final_nicks += " " + nicks[k];
+                final_ids += " " + ids[k];
+            }
+
+            string cmd = "./grouphost " + name + final_nicks + final_ids;
+            system(cmd.c_str());
 
         }
-        else if (option == 1 + 3) // dołączanie do czatu grupowego
+        else if (option == i + 3) // dołączanie do czatu grupowego
         {
 
         }
