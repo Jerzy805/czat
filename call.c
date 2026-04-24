@@ -255,17 +255,17 @@ int main()
             // obsługa dołączenia do czatu grupowego
             
             bool is_correct = false; // czy nazwa czatu jest poprawna
-            char full_chat_name[50];
+            char full_chat_name[128];
             
             do
             {
                 char chat_name[30];
                 printf("Podaj nazwę czatu:\n");
-                scanf("%s", &chat_name);
+                scanf("%29s", chat_name);
                 
                 // sprawdzenie czy istnieje taki czat
                 
-                sprintf(full_chat_name, "/tmp/chat_group-%s", chat_name);
+                snprintf(full_chat_name, sizeof(full_chat_name), "/tmp/chat_group-%s", chat_name);
                 
                 if (access(full_chat_name, F_OK) != 0)
                 {
