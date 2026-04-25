@@ -13,12 +13,27 @@ using namespace std;
 int users_count;
 vector<string> nicks;
 vector<string> ids;
-string chat_name, main_file;
+string chat_name;
+string main_file;
 
-void* reader(void* arg) 
+void append_text(string text, string user)
 {
-    if (arg == nullptr) return nullptr;
-    string filename = *static_cast<string*>(arg);
+    string prefix = "[" + user + "] ";
+    ofstream f(main_file, ios::app);
+    if (!f.is_open())
+    {
+        perror("ofstream");
+        return;
+    }
+
+    f << prefix << text << endl;
+    f.close();
+}
+
+void reader(string user) 
+{
+    string filename = main_file + "-" + user;
+    cout << "Reader: rozpoczęto czytanie: " << filename << endl;
 
     ifstream f;
 
@@ -40,7 +55,7 @@ void* reader(void* arg)
     if (fd < 0)
     {
         perror("inotify_init");
-        return nullptr;
+        return;
     }
 
     int wd = inotify_add_watch(fd, filename.c_str(), IN_MODIFY);
@@ -48,7 +63,7 @@ void* reader(void* arg)
     {
         perror("inotify_add_watch");
         close(fd);
-        return nullptr;
+        return;
     }
 
     char buffer[4096];
@@ -87,6 +102,7 @@ void* reader(void* arg)
             cout << "\r\033[K";        // Czyści bieżącą linię w terminalu
             cout << line << endl;      // Wypisuje nową wiadomość
             cout << "> " << flush;     // Przywraca znak zachęty
+            append_text(line, user); // utrwala wiadomośc w pliku głównym, żeby każdy miał do niej dostęp
         }
 
         // Czyścimy flagę błędu (EOF), żeby getline mógł czytać dalej po następnej zmianie
@@ -95,8 +111,6 @@ void* reader(void* arg)
 
     inotify_rm_watch(fd, wd);
     close(fd);
-
-    return nullptr;
 }
 
 int create_connection(string id) // tworzy plik i nadaje uprawnienia
@@ -149,13 +163,13 @@ int main(int argc, char *argv[])
         cout << "nadano uprawnienia\n";
     }
 
-    // wczytanie nicków użytkowników
+    // wczytanie nicków użytkowników i rozpoczęcie czytania ich wiadomości
     for (int i = 0; i < users_count; i++)
     {
         nicks[i] = argv[2 + i];
         // wrzucenie na osobne wątki czytania poszczególnych plików
         string filename = main_file + "-" + nicks[i];
-        thread t(reader, &nicks[i]); // to oczywiście nie działa
-        cout << "Wrzucenie na nowy wątek czytania pliku: " << filename << endl;
+        thread t(reader, nicks[i]);
+        t.detach(); // odłączenie wątku t od głównego wątku, bez tego nie ma prawa działać
     }
 }

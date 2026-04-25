@@ -72,7 +72,7 @@ void append_text(const string& text)
         return;
     }
 
-    f << prefix << text << '\n';
+    f << prefix << text << endl;
     f.close();
 }
 
