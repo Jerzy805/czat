@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 #include <sys/stat.h>
 #include <cstdlib>
 #include <thread>
@@ -9,12 +10,15 @@
 #include <sys/inotify.h>
 
 using namespace std;
+namespace fs = filesystem;
 
 int users_count;
 vector<string> nicks;
 vector<string> ids;
 string chat_name;
 string main_file;
+string name;
+string added_nick, added_id;
 
 void append_text(string text, string user)
 {
@@ -30,10 +34,14 @@ void append_text(string text, string user)
     f.close();
 }
 
+bool check_line(string line)
+{
+    return line.find("!=");
+}
+
 void reader(string user) 
 {
     string filename = main_file + "-" + user;
-    cout << "Reader: rozpoczęto czytanie: " << filename << endl;
 
     ifstream f;
 
@@ -100,7 +108,7 @@ void reader(string user)
 
             // Odświeżenie widoku w konsoli
             cout << "\r\033[K";        // Czyści bieżącą linię w terminalu
-            cout << line << endl;      // Wypisuje nową wiadomość
+            cout << "[" << user << "] " <<line << endl;      // Wypisuje nową wiadomość
             cout << "> " << flush;     // Przywraca znak zachęty
             append_text(line, user); // utrwala wiadomośc w pliku głównym, żeby każdy miał do niej dostęp
         }
@@ -115,8 +123,14 @@ void reader(string user)
 
 int create_connection(string id) // tworzy plik i nadaje uprawnienia
 {
-    ofstream f(main_file); // wielokrotne tworzenie jednego pliku, trzeba jakoś zmienić
-    f.close();
+    string cmd;
+
+    // utworzenie pliku głównego jeżeli jeszcze nie istnieje
+    if (!fs::exists(main_file))
+    {
+        cmd = "touch " + main_file;
+        system(cmd.c_str());
+    }
 
     // odebranie wszelkich praw wszystkim
     if (chmod(main_file.c_str(), 0600) == -1)
@@ -125,7 +139,7 @@ int create_connection(string id) // tworzy plik i nadaje uprawnienia
         return 1;
     }
 
-    string cmd = "setfacl -m u:" + id + ":r " + main_file;
+    cmd = "setfacl -m u:" + id + ":r " + main_file;
     
     if (system(cmd.c_str()) == -1)
     {
@@ -136,6 +150,39 @@ int create_connection(string id) // tworzy plik i nadaje uprawnienia
     return 0;
 }
 
+void add_user(string user, string id) // funkcja do dynamicznego dodawania użytkowników do czatu
+{
+    create_connection(id);
+
+    thread t(reader, user);
+    t.detach();
+}
+
+void extract_args(string line)
+{
+    size_t sep_pos = line.find("!= ");
+    if (sep_pos == string::npos) return;
+
+    size_t start_arg1 = sep_pos + 3;
+    size_t comma_pos = line.find(",", start_arg1);
+    if (comma_pos == string::npos) return;
+
+    added_nick = line.substr(start_arg1, comma_pos - start_arg1);
+    added_id = line.substr(comma_pos + 2);
+}
+
+bool is_str_empty(string line)
+{
+    if (line.empty())
+        return true;
+    for (char c : line)
+    {
+        if (!isspace(c))
+            return false;
+    }
+    return true;
+}
+
 int main(int argc, char *argv[])
 {
     if (argc % 2 != 0)
@@ -144,7 +191,9 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    cout << "Podaj nazwę konwersacji groupowej:\n";
+    name = argv[1];
+
+    cout << "Podaj nazwę konwersacji grupowej:\n";
     cin >> chat_name; // przydało by się tu dodać obsługę żeby nazwa konwersacji nie była pusta lub biała
 
     main_file = "/tmp/chat_group-" + chat_name;
@@ -160,7 +209,6 @@ int main(int argc, char *argv[])
         ids[i] = argv[users_count + 2 + i];
         // nadanie praw czytania użytkownikom
         create_connection(ids[i]);
-        cout << "nadano uprawnienia\n";
     }
 
     // wczytanie nicków użytkowników i rozpoczęcie czytania ich wiadomości
@@ -173,5 +221,21 @@ int main(int argc, char *argv[])
         t.detach(); // odłączenie wątku t od głównego wątku, bez tego nie ma prawa działać
     }
 
-    // obsługa wysyłania wiadomości by się jeszcze przydała
+    string line;
+    while (getline(cin, line))
+    {
+        if (check_line(line))
+        {
+            if (!is_str_empty(line))
+            append_text(line, name);
+        }
+        else
+        {
+            extract_args(line);
+            add_user(added_nick, added_id);
+            cout << "Pomyślnie dodano użytkownika " << added_nick << endl;
+        }
+        
+        cout << "> ";
+    }
 }

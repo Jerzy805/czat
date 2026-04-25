@@ -212,7 +212,39 @@ int main()
         }
         else if (option == i + 3) // dołączanie do czatu grupowego
         {
+            string group_chat_name, fgroup_chat_name;
+            bool is_ok;
 
+            do
+            {
+                cout << "Podaj nazwę czatu:\n";
+                cin >> group_chat_name;
+
+                fgroup_chat_name = "/tmp/chat_group-" + group_chat_name;
+                bool if_exists, is_given;
+
+                // sprawdzenie czy czat istnieje
+                if (!exists(fgroup_chat_name))
+                {
+                    cout << "Nie istnieje taki czat!\n";
+                    if_exists = false;
+                }
+                else 
+                    if_exists = true;
+
+                // sprawdzenie czy mamy do niego uprawnienia
+                if (access(fgroup_chat_name.c_str(), R_OK) != 0)
+                {
+                    cout << "Host nie nadał ci uprawnień do tej konwersacji\n";
+                    is_given = false;
+                }
+                else
+                    is_given = true;
+
+                is_ok = is_given && if_exists;
+            } while (!is_ok);
+
+            execlp("./groupjoin", "groupjoin", name.c_str(), group_chat_name.c_str(), NULL);
         }
         else if (option <= i && option > 0) // otwieranie istniejącej konwersacji
         {
