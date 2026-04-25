@@ -179,9 +179,6 @@ int main(int argc, char* argv[])
     my_file = prefix + name + "-" + friend_name;
     friend_file = prefix + friend_name + "-" + name;
 
-    cout << "Rozpoczęto czat z " << friend_name << endl;
-    cout << "Czytam z: " << friend_file << endl;
-    cout << "Zapisuję do: " << my_file << endl;
     cout << "> ";
 
     thread t(reader, nullptr);

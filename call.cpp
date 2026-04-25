@@ -4,6 +4,7 @@
 #include <fstream>
 #include <sys/stat.h>
 #include <cstdio>
+#include <csignal>
 #include <unistd.h>
 #include <array>
 #include <memory>
@@ -15,6 +16,11 @@ using namespace fs;
 string name;
 string found_friends[20];
 int count; // liczba znalezionych przyjaciół
+
+void cleanup(int signum)
+{
+    // tutaj obsługa wywalania użytkowników ze wspólnego pliku "lobby"
+}
 
 int get_existing() // pobranie istniejących konwersacji
 {
@@ -145,6 +151,7 @@ int main()
         cout << i + 2 << ". Hostuj czat grupowy\n";
         cout << i + 3 << ". Dołącz do czatu grupowego\n";
         cout << "Aby wysłać plik, wpisz !==!, a następnie nazwę pliku, np !==!video.mp4\n";
+        cout << "Aby usunąć dany czat, wpisz jego numer z ujemnym znakiem\n";
 
         cin >> option;
 
@@ -261,6 +268,12 @@ int main()
             }
             else
             {
+                if (option == -2137) // usuwanie wszystkich istniejących konwersacji
+                {
+                    system("rm /tmp/chat* -f");
+                    cout << "Pomyślnie usunięto wszystkie konwersacje\n";
+                    return 0;
+                }
                 cout << "Niepoprawna komenda\n";
                 return 1;
             }
