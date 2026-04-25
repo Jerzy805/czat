@@ -172,4 +172,6 @@ int main(int argc, char *argv[])
         thread t(reader, nicks[i]);
         t.detach(); // odłączenie wątku t od głównego wątku, bez tego nie ma prawa działać
     }
+
+    // obsługa wysyłania wiadomości by się jeszcze przydała
 }
