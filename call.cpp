@@ -24,6 +24,7 @@ void cleanup(int signum)
     // tutaj obsługa wywalania użytkowników ze wspólnego pliku "lobby"
     unregister_user(name);
     exit(0); // bardzo ważne XDDD
+    // TODO zrobic funkcje atexit();
 }
 
 string get_id(const string& filename) // pobiera id hosta rozmowy
