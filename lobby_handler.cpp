@@ -1,10 +1,13 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <filesystem>
 #include <vector>
+#include <algorithm>
 #include <regex>
 
 using namespace std;
+namespace fs = filesystem;
 const string lobby = "/tmp/lobby";
 
 string get_my_id()
@@ -95,4 +98,41 @@ vector<vector<string>> load_lobby()
         file.close();
     }
     return data;
+}
+
+vector<string> get_group_chats()
+{
+    string prefix = "chat_group-";
+    vector<string> chats;
+
+    for (const auto& entry : fs::directory_iterator("/tmp"))
+    {
+        string filename = entry.path().filename().string();
+
+        if (filename.find(prefix) != string::npos)
+        {
+            chats.push_back(filename); // na tym etapie przechowywanie całego pliku
+        }
+
+        for (string filename : chats)
+        {
+            ifstream f(filename);
+            if (f.is_open())
+            {
+                filename = filename.substr(prefix.length());
+                f.close();
+            }
+            else
+            {
+                filename = "";
+            }
+        }
+
+        chats.erase(
+        remove_if(chats.begin(), chats.end(), [](const string& s) {
+            return s.empty();
+        }), chats.end());
+    }
+
+    return chats;
 }

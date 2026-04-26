@@ -242,14 +242,14 @@ int main()
                 // usuwanie użytkownika z listy
                 list.erase(remove_if(list.begin(), list.end(), [&](const vector<string>& row)
                 {
-                        return row[0] == name;
+                    return row[0] == name;
 
                 }), list.end());
 
                 // Usuwamy z 'list' osoby, które są już w 'added_people'
-                list.erase(std::remove_if(list.begin(), list.end(), [&](const vector<string>& row_in_lobby) {
+                list.erase(remove_if(list.begin(), list.end(), [&](const vector<string>& row_in_lobby) {
                     // Sprawdzamy, czy nick z lobby (row_in_lobby[0]) istnieje w added_people
-                    return std::any_of(added_people.begin(), added_people.end(), [&](const vector<string>& already_added) {
+                    return any_of(added_people.begin(), added_people.end(), [&](const vector<string>& already_added) {
                         return already_added[0] == row_in_lobby[0]; 
                     });
                 }), list.end());
@@ -267,10 +267,10 @@ int main()
                 
                 cin >> choice;
 
-                if (choice == j + 1)
+                if (choice == j + 1) // odświeżenie
                     continue;
 
-                if (choice == j + 2)
+                if (choice == j + 2) // zakończenie dodawania
                     break;
 
                 added_people.push_back({list[choice - 1][0], list[choice - 1][1]});
@@ -291,37 +291,38 @@ int main()
         }
         else if (option == i + 3) // dołączanie do czatu grupowego
         {
-            string group_chat_name, fgroup_chat_name;
-            bool is_ok;
+            string group_chat_name;
+            string prefix = "chat_group-";
 
-            do
+            auto chats = get_group_chats();
+            int choice, j;
+
+            while (true)
             {
-                cout << "Podaj nazwę czatu:\n";
-                cin >> group_chat_name;
+                system("clear");
+                chats = get_group_chats();
 
-                fgroup_chat_name = "/tmp/chat_group-" + group_chat_name;
-                bool if_exists, is_given;
-
-                // sprawdzenie czy czat istnieje
-                if (!exists(fgroup_chat_name))
+                for (j = 0; j < chats.size(); j++)
                 {
-                    cout << "Nie istnieje taki czat!\n";
-                    if_exists = false;
+                    string output = chats[j].substr(prefix.length());
+                    cout << j + 1 << ". " << output << endl;
                 }
-                else 
-                    if_exists = true;
+                cout << j + 1 << ". Odśwież\n";
+                cin >> choice;
 
-                // sprawdzenie czy mamy do niego uprawnienia
-                if (access(fgroup_chat_name.c_str(), R_OK) != 0)
+                if (choice == j + 1)
                 {
-                    cout << "Host nie nadał ci uprawnień do tej konwersacji\n";
-                    is_given = false;
+                    continue;
                 }
-                else
-                    is_given = true;
+                if (choice > j + 1 || choice < 1)
+                {
+                    perror("Wtf typie\n");
+                    return 1;
+                }
 
-                is_ok = is_given && if_exists;
-            } while (!is_ok);
+                group_chat_name = chats[choice - 1].substr(prefix.length());
+                break;
+            }
 
             execlp("./groupjoin", "groupjoin", name.c_str(), group_chat_name.c_str(), NULL);
         }
