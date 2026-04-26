@@ -2,7 +2,7 @@ DIR = $(notdir $(CURDIR))
 
 CC = g++
 
-CFLAGS = -pthread
+CFLAGS = lobby_handler.cpp -pthread
 
 all: grouphost groupjoin chat call
 
@@ -15,7 +15,7 @@ groupjoin: groupjoin.cpp
 	$(CC) $< $(CFLAGS) -o $@
 
 chat: chat.cpp
-	$(CC) $< send_file.cpp get_file.cpp lobby_handler.cpp $(CFLAGS) -o $@
+	$(CC) $< send_file.cpp get_file.cpp $(CFLAGS) -o $@
 
 call: call.cpp
 	$(CC) $< lobby_handler.cpp -o $@

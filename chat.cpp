@@ -16,7 +16,7 @@
 using namespace std;
 namespace fs = filesystem;
 
-string my_file, friend_file, file_to_send, sent_file, friend_name, name, id, my_id;
+string my_file, friend_file, file_to_send, sent_file, friend_name, name, id;
 const string send_file_signal = "!==!";
 
 void append_text(const string& text)
@@ -36,7 +36,7 @@ void append_text(const string& text)
 void cleanup(int signum)
 {
     // tutaj obsługa wywalania użytkowników ze wspólnego pliku "lobby"
-    unregister_user(name, my_id);
+    unregister_user(name);
     append_text("[System] Konwersacja zakończona, użytkownik wyszedł");
     system("rm /tmp/chat* -f"); // usunięcie plików konwersacji, właściwie to nie są już potrzebne
     exit(0);
@@ -85,16 +85,6 @@ bool file_handler()
         return true;
     }
     return false;
-}
-
-string get_my_id()
-{
-    const char* user = getenv("USER");
-
-    if (user == nullptr)
-        return "unidentified ssh name";
-
-    return (string)user;
 }
 
 void* reader(void* arg) // najważniejsza funkcja, odczytuje wiadomości drugiego rozmówcy
@@ -197,7 +187,6 @@ int main(int argc, char* argv[])
     name = argv[1];
     friend_name = argv[2];
     id = argv[3];
-    my_id = get_my_id();
 
     string prefix = "/tmp/chat_";
     my_file = prefix + name + "-" + friend_name;

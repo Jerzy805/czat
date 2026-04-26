@@ -7,8 +7,19 @@
 using namespace std;
 const string lobby = "/tmp/lobby";
 
-void register_user(string nick, string id)
+string get_my_id()
 {
+    const char* user = getenv("USER");
+
+    if (user == nullptr)
+        return "unidentified ssh name";
+
+    return (string)user;
+}
+
+void register_user(string nick)
+{
+    string id = get_my_id();
     string text = nick + "(" + id + ")\n";
 
     // szukanie textu w lobby, żeby nie pisać dwa razy
@@ -38,8 +49,9 @@ void register_user(string nick, string id)
     }
 }
 
-void unregister_user(string nick, string id)
+void unregister_user(string nick)
 {
+    string id = get_my_id();
     string target = nick + "(" + id + ")";
     vector<string> lines;
     string line;

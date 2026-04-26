@@ -3,11 +3,13 @@
 #include <filesystem>
 #include <fstream>
 #include <thread>
+#include <csignal>
 #include <sys/stat.h>
 #include <sys/inotify.h>
 #include <pwd.h>
 #include <cstdlib>
 #include <unistd.h>
+#include "lobby_handler.h"
 
 using namespace std;
 namespace fs = filesystem;
@@ -28,6 +30,15 @@ void append_text(string text)
 
     f << text << endl; // prefix niepotrzebny, bo groupjoin wie z czyjego pliku pochodzi wiadomość
     f.close();
+}
+
+void cleanup(int signum)
+{
+    unregister_user(name);
+    append_text("[System] podany użytkownik wyszedł z konwersacji");
+    string cmd = "rm " + my_file;
+    system(cmd.c_str());
+    exit(0);
 }
 
 void clear_input()
@@ -158,6 +169,8 @@ int main(int argc, char* argv[]) // program potrzebuje nazwy użytkownika i nazw
         perror("Błędna liczba argumentów!\n");
         return 1;
     }
+
+    signal(SIGINT, cleanup);
 
     name = argv[1];
     string arg2 = argv[2];

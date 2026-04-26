@@ -3,11 +3,13 @@
 #include <filesystem>
 #include <sys/stat.h>
 #include <cstdlib>
+#include <csignal>
 #include <thread>
 #include <fcntl.h>
 #include <vector>
 #include <unistd.h>
 #include <sys/inotify.h>
+#include "lobby_handler.h"
 
 using namespace std;
 namespace fs = filesystem;
@@ -22,7 +24,6 @@ string added_nick, added_id;
 
 void append_text(string text, string user)
 {
-    string prefix = "[" + user + "] ";
     ofstream f(main_file, ios::app);
     if (!f.is_open())
     {
@@ -30,8 +31,21 @@ void append_text(string text, string user)
         return;
     }
 
-    f << prefix << text << endl;
+    if (text.find("[System]") == string::npos)
+    {
+        f << "[" << user << "] ";
+    }
+
+    f << text << endl;
     f.close();
+}
+
+void cleanup(int singum)
+{
+    unregister_user(name); // wypisanie z lobby
+    append_text("Gospodarz wyszedł ze spotkania", "System");
+    system("rm /tmp/chat* -f");
+    exit(0);
 }
 
 bool check_line(string line)
@@ -191,12 +205,17 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    signal(SIGINT, cleanup);
+
     name = argv[1];
 
     cout << "Podaj nazwę konwersacji grupowej:\n";
     cin >> chat_name; // przydało by się tu dodać obsługę żeby nazwa konwersacji nie była pusta lub biała
 
     main_file = "/tmp/chat_group-" + chat_name;
+
+    string cmd = "touch " + main_file;
+    system(cmd.c_str());
 
     users_count = (argc - 2) / 2;
 
