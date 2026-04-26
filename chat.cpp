@@ -19,6 +19,20 @@ namespace fs = filesystem;
 string my_file, friend_file, file_to_send, sent_file, friend_name, name, id, my_id;
 const string send_file_signal = "!==!";
 
+void append_text(const string& text)
+{
+    string prefix = "[" + name + "] ";
+    ofstream f(my_file, ios::app);
+    if (!f.is_open())
+    {
+        perror("ofstream");
+        return;
+    }
+
+    f << prefix << text << endl;
+    f.close();
+}
+
 void cleanup(int signum)
 {
     // tutaj obsługa wywalania użytkowników ze wspólnego pliku "lobby"
@@ -80,20 +94,6 @@ string get_my_id()
         return "unidentified ssh name";
 
     return (string)user;
-}
-
-void append_text(const string& text)
-{
-    string prefix = "[" + name + "] ";
-    ofstream f(my_file, ios::app);
-    if (!f.is_open())
-    {
-        perror("ofstream");
-        return;
-    }
-
-    f << prefix << text << endl;
-    f.close();
 }
 
 void* reader(void* arg) // najważniejsza funkcja, odczytuje wiadomości drugiego rozmówcy
