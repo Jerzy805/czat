@@ -7,7 +7,7 @@
 #include <csignal>
 #include <unistd.h>
 #include <array>
-#include <memory>
+#include <memory>   
 #include "lobby_handler.h"
 
 using namespace std;
@@ -16,7 +16,7 @@ using namespace fs;
 
 string name;
 string found_friends[20];
-const string lobby = "/tmp/lobby";
+string active_users[20][20];
 string my_id;
 int count; // liczba znalezionych przyjaciół
 
@@ -144,9 +144,7 @@ int create_connection(string friend_name, string id) // tworzy plik i nadaje upr
 int main()
 {
     setlocale(LC_ALL, "");
-    // utworzenie pliku lobby
-    string touch = "touch " + lobby; 
-    system(touch.c_str());
+    // utworzenie pliku lobby odbywa się w register_user
 
     system("clear");
     cout << "Podaj swój nick:\n";
@@ -181,15 +179,46 @@ int main()
 
         if (option == i + 1) // nowy czat
         {
-            string friend_name, id;
-            cout << "Podaj nick rozmówcy:\n";
-            cin >> friend_name;
-            cout << "Podaj jego nazwę w spk:\n";
-            cin >> id;
+            string friend_name, friend_id;
 
-            create_connection(friend_name, id);
+            auto list = load_lobby();
 
-            execlp("./chat", "chat", name.c_str(), friend_name.c_str(), id.c_str(), NULL);
+            int choice;
+            int j = 0;
+
+            do
+            {
+                if (!list.empty())
+                {
+                    for (j = 0; j < list.size(); j++)
+                    {
+                        cout << j + 1 << ". " << list[i][0] << endl;
+                    }
+                }
+                cout << j + 1 << ". Wprowadź dane ręcznie\n";
+                cin >> choice;
+            } while (choice < 1 || choice > list.size());
+
+            if (choice != j + 1) // wybór z lobby
+            {
+                friend_name = list[choice - 1][0];
+                friend_id = list[choice - 1][0];
+
+                create_connection(friend_name, friend_id);
+
+                execlp("./chat", "chat", name.c_str(), friend_name.c_str(), friend_id.c_str(), NULL);
+            }
+            else // ręczne wprowadzanie danych
+            {
+                cout << "Podaj nick rozmówcy:\n";
+                cin >> friend_name;
+                cout << "Podaj jego nazwę w spk:\n";
+                cin >> friend_id;
+
+                create_connection(friend_name, friend_id);
+
+                execlp("./chat", "chat", name.c_str(), friend_name.c_str(), friend_id.c_str(), NULL);
+            }
         }
         else if (option == i + 2) // hostowanie czatu grupowego
         {

@@ -1,6 +1,8 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <vector>
+#include <regex>
 
 using namespace std;
 const string lobby = "/tmp/lobby";
@@ -42,4 +44,26 @@ void unregister_user(string nick, string id)
     for (const auto& l : lines) {
         outFile << l << endl;
     }
+}
+
+vector<vector<string>> load_lobby()
+{
+    vector<vector<string>> data;
+    ifstream file(lobby);
+    string line;
+    
+    // Regex do wyciągania nick i id z formatu nick(id)
+    regex pattern(R"((.+)\((.+)\))");
+    smatch matches;
+
+    if (file.is_open()) {
+        while (getline(file, line)) {
+            if (regex_search(line, matches, pattern) && matches.size() == 3) {
+                // matches[1] to string1, matches[2] to string2
+                data.push_back({matches[1].str(), matches[2].str()});
+            }
+        }
+        file.close();
+    }
+    return data;
 }
