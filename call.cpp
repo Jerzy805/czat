@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <array>
 #include <memory>
+#include "lobby_handler.h"
 
 using namespace std;
 namespace fs = filesystem;
@@ -15,11 +16,14 @@ using namespace fs;
 
 string name;
 string found_friends[20];
+const string lobby = "/tmp/lobby";
+string my_id;
 int count; // liczba znalezionych przyjaciół
 
 void cleanup(int signum)
 {
     // tutaj obsługa wywalania użytkowników ze wspólnego pliku "lobby"
+    unregister_user(name, my_id);
 }
 
 int get_existing() // pobranie istniejących konwersacji
@@ -51,7 +55,17 @@ int get_existing() // pobranie istniejących konwersacji
     return counter;
 }
 
-string get_id(const string& filename)
+string get_my_id()
+{
+    const char* user = getenv("USER");
+
+    if (user == nullptr)
+        return "unidentified ssh name";
+
+    return (string)user;
+}
+
+string get_id(const string& filename) // pobiera id hosta rozmowy
 {
     string cmd = "getfacl " + filename;
 
@@ -130,9 +144,17 @@ int create_connection(string friend_name, string id) // tworzy plik i nadaje upr
 int main()
 {
     setlocale(LC_ALL, "");
+    // utworzenie pliku lobby
+    string touch = "touch " + lobby; 
+    system(touch.c_str());
+
     system("clear");
     cout << "Podaj swój nick:\n";
     cin >> name;
+
+    my_id = get_my_id();
+    register_user(name, my_id);
+    return 0;
 
     count = get_existing();
 

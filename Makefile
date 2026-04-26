@@ -18,7 +18,7 @@ chat: chat.cpp
 	$(CC) $< send_file.cpp get_file.cpp $(CFLAGS) -o $@
 
 call: call.cpp
-	$(CC) $< -o $@
+	$(CC) $< lobby_handler.cpp -o $@
 
 clean:
 	rm -f *.o *.x a.out *~
