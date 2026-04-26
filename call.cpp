@@ -26,35 +26,6 @@ void cleanup(int signum)
     exit(0); // bardzo ważne XDDD
 }
 
-int get_existing() // pobranie istniejących konwersacji
-{
-    string prefix = "chat_" + name + "-";
-    int counter = 0; // zwracana wartość, liczba znalezionych konwersacji
-    
-    // szukanie plików po prefixie
-
-    for (const auto& entry : directory_iterator("/tmp/"))
-    {
-        string filename = entry.path().filename().string();
-
-        if (filename.rfind(prefix, 0) == 0 && filename.find('!') == string::npos)
-        {
-            string found_friend = filename.substr(prefix.length());
-            found_friends[counter++] = found_friend;
-
-            if (counter >= 20)
-                return counter;
-        }
-    }
-    
-    if (counter == 0)
-    {
-        cout << "Nie znaleziono żadnych zapisów konwersacji\n";
-    }
-    
-    return counter;
-}
-
 string get_id(const string& filename) // pobiera id hosta rozmowy
 {
     string cmd = "getfacl " + filename;
@@ -142,24 +113,14 @@ int main()
     cout << "Podaj swój nick:\n";
     cin >> name;
 
-    register_user(name);
-
-    friends_count = get_existing();
-
-    // tworzenie menu
+    register_user(name); // dodanie użytkownika do lobby
 
     system("clear");
-    int i = 0, option;
+    int option;
 
-    if (friends_count > 0)
-    {
-        for (i = 0; i < friends_count; i++)
-        cout << i + 1 << ". " << found_friends[i] << endl;
-    }    
-
-        cout << i + 1 << ". Nowy czat\n";
-        cout << i + 2 << ". Hostuj czat grupowy\n";
-        cout << i + 3 << ". Dołącz do czatu grupowego\n";
+    cout << "1. Nowy czat\n";
+        cout << "2. Hostuj czat grupowy\n";
+        cout << "3. Dołącz do czatu grupowego\n";
         cout << "Aby wysłać plik, wpisz !==!, a następnie nazwę pliku, np !==!video.mp4\n";
         cout << "Aby usunąć dany czat, wpisz jego numer z ujemnym znakiem\n";
 
@@ -167,7 +128,7 @@ int main()
 
         system("clear");
 
-        if (option == i + 1) // nowy czat
+        if (option == 1) // nowy czat
         {
             string friend_name, friend_id;
             int choice = 0, j = 0;
@@ -228,7 +189,7 @@ int main()
                 execlp("./chat", "chat", name.c_str(), friend_name.c_str(), friend_id.c_str(), NULL);
             }
         }
-        else if (option == i + 2) // hostowanie czatu grupowego
+        else if (option == 2) // hostowanie czatu grupowego
         {
             auto list = load_lobby();
             vector<vector<string>> added_people;
@@ -289,7 +250,7 @@ int main()
             system(cmd.c_str());
 
         }
-        else if (option == i + 3) // dołączanie do czatu grupowego
+        else if (option == 3) // dołączanie do czatu grupowego
         {
             string group_chat_name;
             string prefix = "chat_group-";
@@ -325,30 +286,5 @@ int main()
             }
 
             execlp("./groupjoin", "groupjoin", name.c_str(), group_chat_name.c_str(), NULL);
-        }
-        else if (option <= i && option > 0) // otwieranie istniejącej konwersacji
-        {
-            string filename = "/tmp/chat_" + name + "-" + found_friends[option - 1];
-
-            execlp("./chat", "chat", name.c_str(), found_friends[option - 1].c_str(), get_id(filename).c_str(), NULL);
-        }
-        else if (option < 0) // usuwanie konwersacji
-        {
-            if (delete_convo(-option - 1) == 0)
-            {
-                cout << "Pomyślnie usunięto konwersację z " << found_friends[-option - 1] << endl;
-                friends_count = get_existing();
-            }
-            else
-            {
-                if (option == -2137) // usuwanie wszystkich istniejących konwersacji
-                {
-                    system("rm /tmp/chat* -f");
-                    cout << "Pomyślnie usunięto wszystkie konwersacje\n";
-                    return 0;
-                }
-                cout << "Niepoprawna komenda\n";
-                return 1;
-            }
         }
 }

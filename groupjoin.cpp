@@ -183,6 +183,7 @@ int main(int argc, char* argv[]) // program potrzebuje nazwy użytkownika i nazw
     //ogarnięcie czytania głównego pliku
     thread t(reader);
 
+    system("clear");
     cout << "[System] pomyślnie dołączono do czatu " << arg2 << endl;
 
     string line;

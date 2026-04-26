@@ -217,6 +217,9 @@ int main(int argc, char *argv[])
     string cmd = "touch " + main_file;
     system(cmd.c_str());
 
+    system("clear");
+    cout << "---------Rozpoczęto konwersację grupową---------\n";
+
     users_count = (argc - 2) / 2;
 
     ids.resize(users_count);
