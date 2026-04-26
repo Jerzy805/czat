@@ -17,14 +17,12 @@ using namespace fs;
 
 string name;
 string found_friends[20];
-string active_users[20][20];
-string my_id;
 int friends_count; // liczba znalezionych przyjaciół
 
 void cleanup(int signum)
 {
     // tutaj obsługa wywalania użytkowników ze wspólnego pliku "lobby"
-    unregister_user(name, my_id);
+    unregister_user(name);
     exit(0); // bardzo ważne XDDD
 }
 
@@ -55,16 +53,6 @@ int get_existing() // pobranie istniejących konwersacji
     }
     
     return counter;
-}
-
-string get_my_id()
-{
-    const char* user = getenv("USER");
-
-    if (user == nullptr)
-        return "unidentified ssh name";
-
-    return (string)user;
 }
 
 string get_id(const string& filename) // pobiera id hosta rozmowy
@@ -154,8 +142,7 @@ int main()
     cout << "Podaj swój nick:\n";
     cin >> name;
 
-    my_id = get_my_id();
-    register_user(name, my_id);
+    register_user(name);
 
     friends_count = get_existing();
 
@@ -191,7 +178,7 @@ int main()
             {
                 system("clear"); // Czyścimy ekran przy każdym odświeżeniu
                 list = load_lobby();
-                list.erase(std::remove_if(list.begin(), list.end(), [&](const vector<string>& row) {
+                list.erase(remove_if(list.begin(), list.end(), [&](const vector<string>& row) {
                     return row[0] == name;
                 }), list.end());
 
@@ -199,22 +186,21 @@ int main()
                 for (j = 0; j < list.size(); j++) {
                     cout << j + 1 << ". " << list[j][0] << endl;
                 }
-                
-                int manual_refresh_idx = list.size() + 1;
-                int manual_input_idx = list.size() + 2;
 
-                cout << manual_refresh_idx << ". ODŚWIEŻ LISTĘ" << endl;
-                cout << manual_input_idx << ". Wprowadź dane ręcznie" << endl;
+                cout << list.size() + 1 << ". ODŚWIEŻ LISTĘ" << endl;
+                cout << list.size() + 2 << ". Wprowadź dane ręcznie" << endl;
                 
                 cout << "\nWybierz opcję: ";
                 cin >> choice;
 
-                if (choice == manual_refresh_idx) {
-                    continue; // Skacze na początek while(true) i ładuje listę od nowa
+                if (choice == list.size() + 1) // odświeża listę
+                {
+                    continue;
                 }
                 
-                if (choice > 0 && choice <= manual_input_idx) {
-                    break; // Użytkownik dokonał wyboru (ręcznego lub z listy), wychodzimy z while
+                if (choice > 0 && choice <= list.size() + 2) // ręczne wprowadzanie danych lub wybór z lobby
+                {
+                    break;
                 }
                 
                 cout << "Niepoprawny wybór!" << endl;
@@ -244,46 +230,59 @@ int main()
         }
         else if (option == i + 2) // hostowanie czatu grupowego
         {
-            string nicks[20];
-            string ids[20];
-            int choice, j;
-            for (j = 0; j < 20; j++)
+            auto list = load_lobby();
+            vector<vector<string>> added_people;
+            int choice = 0, actual_size, j;
+
+            do
             {
                 system("clear");
-                cout << "----------------------------\n";
-                cout << "1. Dodaj nowego użytkownika\n";
-                cout << "2. Zakończ dodawanie użytkowników\n";
-                cout << "----------------------------\n";
-
-                if (!(cin >> choice)) // Sprawdzamy czy wczytano liczbę
-                { 
-                    cin.clear();
-                    cin.ignore(1000, '\n');
-                    continue;
-                }
-
-                if (choice == 2)
+                
+                list = load_lobby();
+                // usuwanie użytkownika z listy
+                list.erase(remove_if(list.begin(), list.end(), [&](const vector<string>& row)
                 {
-                    if (j == 0)
-                    {
-                        cout << "Nie dodałeś żadnych użytkowników do czatu grupowego!\n";
-                        return 1;
-                    }
-                    break;
+                        return row[0] == name;
+
+                }), list.end());
+
+                // Usuwamy z 'list' osoby, które są już w 'added_people'
+                list.erase(std::remove_if(list.begin(), list.end(), [&](const vector<string>& row_in_lobby) {
+                    // Sprawdzamy, czy nick z lobby (row_in_lobby[0]) istnieje w added_people
+                    return std::any_of(added_people.begin(), added_people.end(), [&](const vector<string>& already_added) {
+                        return already_added[0] == row_in_lobby[0]; 
+                    });
+                }), list.end());
+
+                actual_size = list.size();
+
+                cout << "Wybierz opcję:\n" ;
+
+                for (j = 0; j < actual_size; j++)
+                {
+                    cout << j + 1 << ". " << list[j][0] << endl;
                 }
+                cout << j + 1 << ". ODŚWIEŻ LISTĘ\n";
+                cout << j + 2 << ". Zakończ dodawanie użytkowników\n";
+                
+                cin >> choice;
 
-                cout << "Podaj nick użytkownika:\n";
-                cin >> nicks[j];
-                cout << "Podaj jego nazwę w spk:\n";
-                cin >> ids[j];
-            }
+                if (choice == j + 1)
+                    continue;
 
-            string final_nicks = "", final_ids = "";
+                if (choice == j + 2)
+                    break;
 
-            for (int k = 0; k < j; k++)
+                added_people.push_back({list[choice - 1][0], list[choice - 1][1]});
+                list.erase(list.begin() + choice - 1);
+            } while (list.size() != 0);
+
+            string final_nicks, final_ids;
+
+            for (j = 0; j < added_people.size(); j++)
             {
-                final_nicks += " " + nicks[k];
-                final_ids += " " + ids[k];
+                final_nicks += " " + added_people[j][0];
+                final_ids += " " + added_people[j][1];
             }
 
             string cmd = "./grouphost " + name + final_nicks + final_ids;
