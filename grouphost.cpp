@@ -210,7 +210,20 @@ int main(int argc, char *argv[])
     name = argv[1];
 
     cout << "Podaj nazwę konwersacji grupowej:\n";
-    cin >> chat_name; // przydało by się tu dodać obsługę żeby nazwa konwersacji nie była pusta lub biała
+    //cin >> chat_name; // przydało by się tu dodać obsługę żeby nazwa konwersacji nie była pusta lub biała
+        
+    bool correctChatName = false;
+
+    while(!correctChatName){
+        cout << "Podaj nazwę konwersacji grupowej:\n";
+        cin >> chat_name;
+
+        if(chat_name.empty() || chat_name[0] == ' '){
+            cout << "Nazwa konwersacji nie może być pusta lub zawierać tylko białe znaki. Spróbuj ponownie.\n";
+        } else {
+            correctChatName = true;
+        }
+    }
 
     main_file = "/tmp/chat_group-" + chat_name;
 
