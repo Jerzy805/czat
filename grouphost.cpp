@@ -251,12 +251,12 @@ int main(int argc, char *argv[])
             if (!is_str_empty(line))
             append_text(line, name);
         }
-        else
-        {
-            extract_args(line);
-            add_user(added_nick, added_id);
-            cout << "Pomyślnie dodano użytkownika " << added_nick << endl;
-        }
+        // else // trzeba to zmienić żeby był wybór z lobby
+        // {
+        //     extract_args(line);
+        //     add_user(added_nick, added_id);
+        //     cout << "Pomyślnie dodano użytkownika " << added_nick << endl;
+        // }
         
         cout << "> ";
     }
