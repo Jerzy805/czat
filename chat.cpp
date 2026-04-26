@@ -5,17 +5,27 @@
 #include <iostream>
 #include <string>
 #include <cstdio>
+#include <csignal>
 #include <thread>
 #include <filesystem>
 #include <cstring>
 #include "send_file.h"
 #include "get_file.h"
+#include "lobby_handler.h"
 
 using namespace std;
 namespace fs = filesystem;
 
-string my_file, friend_file, file_to_send, sent_file, friend_name, name, id;
+string my_file, friend_file, file_to_send, sent_file, friend_name, name, id, my_id;
 const string send_file_signal = "!==!";
+
+void cleanup(int signum)
+{
+    // tutaj obsługa wywalania użytkowników ze wspólnego pliku "lobby"
+    unregister_user(name, my_id);
+    append_text("[System] Konwersacja zakończona");
+    exit(0);
+}
 
 bool is_str_empty(string line)
 {
@@ -60,6 +70,16 @@ bool file_handler()
         return true;
     }
     return false;
+}
+
+string get_my_id()
+{
+    const char* user = getenv("USER");
+
+    if (user == nullptr)
+        return "unidentified ssh name";
+
+    return (string)user;
 }
 
 void append_text(const string& text)
@@ -171,9 +191,12 @@ int main(int argc, char* argv[])
         return 1;
     }
 
+    signal(SIGINT, cleanup);
+
     name = argv[1];
     friend_name = argv[2];
     id = argv[3];
+    my_id = get_my_id();
 
     string prefix = "/tmp/chat_";
     my_file = prefix + name + "-" + friend_name;
@@ -182,6 +205,9 @@ int main(int argc, char* argv[])
     cout << "> ";
 
     thread t(reader, nullptr);
+
+    system("clear");
+    cout << "Rozpoczęto rozmowę z użytkownikiem " << friend_name << endl;
 
     string line;
     while (getline(cin, line))

@@ -7,7 +7,8 @@
 #include <csignal>
 #include <unistd.h>
 #include <array>
-#include <memory>   
+#include <memory>
+#include <algorithm>
 #include "lobby_handler.h"
 
 using namespace std;
@@ -18,12 +19,14 @@ string name;
 string found_friends[20];
 string active_users[20][20];
 string my_id;
-int count; // liczba znalezionych przyjaciół
+int friends_count; // liczba znalezionych przyjaciół
 
 void cleanup(int signum)
 {
     // tutaj obsługa wywalania użytkowników ze wspólnego pliku "lobby"
     unregister_user(name, my_id);
+    system("rm /tmp/chat* -f"); // usunięcie plików konwersacji, właściwie to nie są już potrzebne
+    exit(0); // bardzo ważne XDDD
 }
 
 int get_existing() // pobranie istniejących konwersacji
@@ -102,7 +105,7 @@ string get_id(const string& filename) // pobiera id hosta rozmowy
 
 int delete_convo(int index)
 {
-    if(index >= count)
+    if(index >= friends_count)
     {
         return 1;
     }
@@ -146,24 +149,25 @@ int main()
     setlocale(LC_ALL, "");
     // utworzenie pliku lobby odbywa się w register_user
 
+    signal(SIGINT, cleanup);
+
     system("clear");
     cout << "Podaj swój nick:\n";
     cin >> name;
 
     my_id = get_my_id();
     register_user(name, my_id);
-    return 0;
 
-    count = get_existing();
+    friends_count = get_existing();
 
     // tworzenie menu
 
     system("clear");
     int i = 0, option;
 
-    if (count > 0)
+    if (friends_count > 0)
     {
-        for (i = 0; i < count; i++)
+        for (i = 0; i < friends_count; i++)
         cout << i + 1 << ". " << found_friends[i] << endl;
     }    
 
@@ -180,29 +184,48 @@ int main()
         if (option == i + 1) // nowy czat
         {
             string friend_name, friend_id;
+            int choice = 0, j = 0;
 
             auto list = load_lobby();
 
-            int choice;
-            int j = 0;
-
-            do
+            while (true)
             {
-                if (!list.empty())
-                {
-                    for (j = 0; j < list.size(); j++)
-                    {
-                        cout << j + 1 << ". " << list[i][0] << endl;
-                    }
+                system("clear"); // Czyścimy ekran przy każdym odświeżeniu
+                list = load_lobby();
+                list.erase(std::remove_if(list.begin(), list.end(), [&](const vector<string>& row) {
+                    return row[0] == name;
+                }), list.end());
+
+                cout << "--- DOSTĘPNI UŻYTKOWNICY ---" << endl;
+                for (j = 0; j < list.size(); j++) {
+                    cout << j + 1 << ". " << list[j][0] << endl;
                 }
-                cout << j + 1 << ". Wprowadź dane ręcznie\n";
+                
+                int manual_refresh_idx = list.size() + 1;
+                int manual_input_idx = list.size() + 2;
+
+                cout << manual_refresh_idx << ". ODŚWIEŻ LISTĘ" << endl;
+                cout << manual_input_idx << ". Wprowadź dane ręcznie" << endl;
+                
+                cout << "\nWybierz opcję: ";
                 cin >> choice;
-            } while (choice < 1 || choice > list.size());
+
+                if (choice == manual_refresh_idx) {
+                    continue; // Skacze na początek while(true) i ładuje listę od nowa
+                }
+                
+                if (choice > 0 && choice <= manual_input_idx) {
+                    break; // Użytkownik dokonał wyboru (ręcznego lub z listy), wychodzimy z while
+                }
+                
+                cout << "Niepoprawny wybór!" << endl;
+                sleep(1); // Krótka pauza przed odświeżeniem po błędzie
+            }
 
             if (choice != j + 1) // wybór z lobby
             {
                 friend_name = list[choice - 1][0];
-                friend_id = list[choice - 1][0];
+                friend_id = list[choice - 1][1];
 
                 create_connection(friend_name, friend_id);
 
@@ -315,7 +338,7 @@ int main()
             if (delete_convo(-option - 1) == 0)
             {
                 cout << "Pomyślnie usunięto konwersację z " << found_friends[-option - 1] << endl;
-                count = get_existing();
+                friends_count = get_existing();
             }
             else
             {

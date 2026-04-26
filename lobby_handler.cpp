@@ -9,10 +9,27 @@ const string lobby = "/tmp/lobby";
 
 void register_user(string nick, string id)
 {
+    string text = nick + "(" + id + ")\n";
+
+    // szukanie textu w lobby, żeby nie pisać dwa razy
+    ifstream file(lobby);
+    string file_content;
+
+    if (file.is_open())
+    {
+        getline(file, file_content, '\0');
+        file.close();
+    }
+
+    if (file_content.find(text) != string::npos)
+        return;
+
+    // dopisywanie użytkownika do lobby
     ofstream f(lobby, ios::app);
+    
     if (f.is_open())
     {
-        f << nick << "(" << id << ")\n";
+        f << text;
         f.close();
     }
     else
