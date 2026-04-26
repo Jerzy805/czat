@@ -37,7 +37,8 @@ void cleanup(int signum)
 {
     // tutaj obsługa wywalania użytkowników ze wspólnego pliku "lobby"
     unregister_user(name, my_id);
-    append_text("[System] Konwersacja zakończona");
+    system("rm /tmp/chat* -f"); // usunięcie plików konwersacji, właściwie to nie są już potrzebne
+    append_text("[System] Konwersacja zakończona, użytkownik wyszedł");
     exit(0);
 }
 
