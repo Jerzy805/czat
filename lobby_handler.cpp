@@ -115,7 +115,7 @@ vector<string> get_group_chats()
             chats.push_back(filename); // na tym etapie przechowywanie całego pliku
         }
 
-        for (string filename : chats)
+        for (string filename& : chats)
         {
             ifstream f(filename);
             if (f.is_open())

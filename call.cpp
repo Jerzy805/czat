@@ -266,8 +266,7 @@ int main()
 
                 for (j = 0; j < chats.size(); j++)
                 {
-                    string output = chats[j].substr(prefix.length());
-                    cout << j + 1 << ". " << output << endl;
+                    cout << j + 1 << ". " << chats[j] << endl;
                 }
                 cout << j + 1 << ". Odśwież\n";
                 cin >> choice;
@@ -282,7 +281,7 @@ int main()
                     return 1;
                 }
 
-                group_chat_name = chats[choice - 1].substr(prefix.length());
+                group_chat_name = chats[choice - 1];
                 break;
             }
 
