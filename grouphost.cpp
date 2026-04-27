@@ -225,9 +225,6 @@ int main(int argc, char *argv[])
     signal(SIGINT, cleanup);
 
     name = argv[1];
-
-    cout << "Podaj nazwę konwersacji grupowej:\n";
-    //cin >> chat_name; // przydało by się tu dodać obsługę żeby nazwa konwersacji nie była pusta lub biała
         
     bool correctChatName = false;
 
@@ -289,8 +286,7 @@ int main(int argc, char *argv[])
 
             while (true)
             {
-                clear_list(list); // oczyszcza listę o dodanych już użtytkowników
-                system("clear");
+                clear_list(list); // oczyszcza listę o dodanych już użytkowników
                 if (list.size() == 0)
                 {
                     cout << "Nie ma żadnych niedodanych użytkowników online\n";
@@ -313,9 +309,8 @@ int main(int argc, char *argv[])
                     break;
 
                 add_user(list[choice - 1][0], list[choice - 1][1]);
+                system("clear");
                 cout << "Pomyślnie dodano użytkownika " << list[choice - 1][0] << endl;
-                cout << "Naciśnij dowolny klawisz aby kontynuować\n";
-                cin.get();
             }
             
         }

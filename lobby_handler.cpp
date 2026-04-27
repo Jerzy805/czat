@@ -106,33 +106,23 @@ vector<string> get_group_chats()
     string prefix = "chat_group-";
     vector<string> chats;
 
+    if (!fs::exists("/tmp")) return chats;
+
     for (const auto& entry : fs::directory_iterator("/tmp"))
     {
         string filename = entry.path().filename().string();
 
-        if (filename.find(prefix) != string::npos)
+        if (filename.find(prefix) == 0) 
         {
-            chats.push_back(filename); // na tym etapie przechowywanie całego pliku
-        }
+            ifstream f(entry.path());
 
-        for (string filename& : chats)
-        {
-            ifstream f(filename);
-            if (f.is_open())
+            if (f.is_open()) // sprawdzenie czy mam uprawnienia by otwierać plik
             {
-                filename = filename.substr(prefix.length());
+                //dodawanie do wektora samej nazwy czatu
+                chats.push_back(filename.substr(prefix.length()));
                 f.close();
             }
-            else
-            {
-                filename = "";
-            }
         }
-
-        chats.erase(
-        remove_if(chats.begin(), chats.end(), [](const string& s) {
-            return s.empty();
-        }), chats.end());
     }
 
     return chats;
