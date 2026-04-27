@@ -92,7 +92,8 @@ vector<vector<string>> load_lobby()
         while (getline(file, line)) {
             if (regex_search(line, matches, pattern) && matches.size() == 3) {
                 // matches[1] to string1, matches[2] to string2
-                data.push_back({matches[1].str(), matches[2].str()});
+                if (matches[2].str() != get_my_id()) // żeby nie dodawało samego użytkownika
+                    data.push_back({matches[1].str(), matches[2].str()});
             }
         }
         file.close();

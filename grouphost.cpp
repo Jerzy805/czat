@@ -9,6 +9,8 @@
 #include <vector>
 #include <unistd.h>
 #include <sys/inotify.h>
+#include <algorithm>
+#include <unordered_set>
 #include "lobby_handler.h"
 
 using namespace std;
@@ -46,6 +48,20 @@ void cleanup(int singum)
     append_text("Gospodarz wyszedł ze spotkania", "System");
     system("rm /tmp/chat* -f");
     exit(0);
+}
+
+void clear_list(vector<vector<string>>& target_list) // usuwa z listy te elementy, które są już w ids
+{
+    // Tworzymy set na bazie globalnego (lub przekazanego) ids
+    unordered_set<string> s(ids.begin(), ids.end());
+
+    // Pracujemy na referencji target_list
+    target_list.erase(
+        remove_if(target_list.begin(), target_list.end(), [&](const vector<string>& row) {
+            return s.count(row[1]);
+        }), 
+        target_list.end()
+    );
 }
 
 bool check_line(string line)
@@ -167,6 +183,7 @@ int create_connection(string id) // tworzy plik i nadaje uprawnienia
 void add_user(string user, string id) // funkcja do dynamicznego dodawania użytkowników do czatu
 {
     create_connection(id);
+    ids.push_back(id);
 
     thread t(reader, user);
     t.detach();
@@ -230,9 +247,6 @@ int main(int argc, char *argv[])
     string cmd = "touch " + main_file;
     system(cmd.c_str());
 
-    system("clear");
-    cout << "---------Rozpoczęto konwersację grupową---------\n";
-
     users_count = (argc - 2) / 2;
 
     ids.resize(users_count);
@@ -256,6 +270,9 @@ int main(int argc, char *argv[])
         t.detach(); // odłączenie wątku t od głównego wątku, bez tego nie ma prawa działać
     }
 
+    system("clear");
+    cout << "---------Rozpoczęto konwersację grupową---------\n";
+
     string line;
     while (getline(cin, line))
     {
@@ -264,12 +281,44 @@ int main(int argc, char *argv[])
             if (!is_str_empty(line))
             append_text(line, name);
         }
-        // else // trzeba to zmienić żeby był wybór z lobby
-        // {
-        //     extract_args(line);
-        //     add_user(added_nick, added_id);
-        //     cout << "Pomyślnie dodano użytkownika " << added_nick << endl;
-        // }
+        else
+        {
+            auto list = load_lobby();
+
+            unordered_set<string> s(ids.begin(), ids.end()); // zmienna tymczasowa
+
+            while (true)
+            {
+                clear_list(list); // oczyszcza listę o dodanych już użtytkowników
+                system("clear");
+                if (list.size() == 0)
+                {
+                    cout << "Nie ma żadnych niedodanych użytkowników online\n";
+                    break;
+                }
+
+                int i, choice;
+
+                for (i = 0; i < list.size(); i++)
+                {
+                    cout << i + 1 << ". " << list[i][0] << endl; 
+                }
+                cout << i + 1 << ". Odśwież listę\n";
+                cout << i + 2 << ". Zakończ dodawanie użytkowników\n";
+                cin >> choice;
+
+                if (choice == i + 1)
+                    continue;
+                if (choice == i + 2)
+                    break;
+
+                add_user(list[choice - 1][0], list[choice - 1][1]);
+                cout << "Pomyślnie dodano użytkownika " << list[choice - 1][0] << endl;
+                cout << "Naciśnij dowolny klawisz aby kontynuować\n";
+                cin.get();
+            }
+            
+        }
         
         cout << "> ";
     }
