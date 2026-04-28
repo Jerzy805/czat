@@ -42,6 +42,11 @@ void cleanup(int signum)
     exit(0);
 }
 
+void exit_cleanup()
+{
+    unregister_user(name);
+}
+
 bool is_str_empty(string line)
 {
     if (line.empty())
@@ -183,10 +188,15 @@ int main(int argc, char* argv[])
     }
 
     signal(SIGINT, cleanup);
+    signal(SIGHUP, cleanup);
+
+    atexit(exit_cleanup);
 
     name = argv[1];
     friend_name = argv[2];
     id = argv[3];
+
+    register_user(name); // jeżeli użytkownik jest już w lobby to nie stanie się nic
 
     string prefix = "/tmp/chat_";
     my_file = prefix + name + "-" + friend_name;

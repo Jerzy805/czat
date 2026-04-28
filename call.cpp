@@ -24,7 +24,11 @@ void cleanup(int signum)
     // tutaj obsługa wywalania użytkowników ze wspólnego pliku "lobby"
     unregister_user(name);
     exit(0); // bardzo ważne XDDD
-    // TODO zrobic funkcje atexit();
+}
+
+void exit_cleanup()
+{
+    unregister_user(name);
 }
 
 string get_id(const string& filename) // pobiera id hosta rozmowy
@@ -106,9 +110,11 @@ int create_connection(string friend_name, string id) // tworzy plik i nadaje upr
 int main()
 {
     setlocale(LC_ALL, "");
-    // utworzenie pliku lobby odbywa się w register_user
+
+    atexit(exit_cleanup);
 
     signal(SIGINT, cleanup);
+    signal(SIGHUP, cleanup);
 
     system("clear");
     cout << "Podaj swój nick:\n";
@@ -134,15 +140,12 @@ int main()
             string friend_name, friend_id;
             int choice = 0, j = 0;
 
-            auto list = load_lobby();
+            auto list = load_lobby(); // nie pokazuje użytkowników o tym samym id co my, także testy lokalne nie mają już sensu
 
             while (true)
             {
-                system("clear"); // Czyścimy ekran przy każdym odświeżeniu
+                system("clear");
                 list = load_lobby();
-                list.erase(remove_if(list.begin(), list.end(), [&](const vector<string>& row) {
-                    return row[0] == name;
-                }), list.end());
 
                 cout << "--- DOSTĘPNI UŻYTKOWNICY ---" << endl;
                 for (j = 0; j < list.size(); j++) {
@@ -196,25 +199,14 @@ int main()
             vector<vector<string>> added_people;
             int choice = 0, actual_size, j;
 
-            do
+            while (true)
             {
                 system("clear");
                 
                 list = load_lobby();
-                // usuwanie użytkownika z listy
-                list.erase(remove_if(list.begin(), list.end(), [&](const vector<string>& row)
-                {
-                    return row[0] == name;
-
-                }), list.end());
 
                 // Usuwamy z 'list' osoby, które są już w 'added_people'
-                list.erase(remove_if(list.begin(), list.end(), [&](const vector<string>& row_in_lobby) {
-                    // Sprawdzamy, czy nick z lobby (row_in_lobby[0]) istnieje w added_people
-                    return any_of(added_people.begin(), added_people.end(), [&](const vector<string>& already_added) {
-                        return already_added[0] == row_in_lobby[0]; 
-                    });
-                }), list.end());
+                list = clear_list(added_people);
 
                 actual_size = list.size();
 
@@ -237,7 +229,7 @@ int main()
 
                 added_people.push_back({list[choice - 1][0], list[choice - 1][1]});
                 list.erase(list.begin() + choice - 1);
-            } while (list.size() != 0);
+            }
 
             string final_nicks, final_ids;
 

@@ -50,6 +50,11 @@ void cleanup(int singum)
     exit(0);
 }
 
+void exit_cleanup()
+{
+    unregister_user(name);
+}
+
 void clear_list(vector<vector<string>>& target_list) // usuwa z listy te elementy, które są już w ids
 {
     // Tworzymy set na bazie globalnego (lub przekazanego) ids
@@ -223,8 +228,13 @@ int main(int argc, char *argv[])
     }
 
     signal(SIGINT, cleanup);
+    signal(SIGHUP, cleanup);
+
+    atexit(exit_cleanup);
 
     name = argv[1];
+
+    register_user(name); // jeżeli użytkownik jest już w lobby to nie stanie się nic
         
     bool correctChatName = false;
 

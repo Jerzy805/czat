@@ -41,6 +41,11 @@ void cleanup(int signum)
     exit(0);
 }
 
+void exit_cleanup()
+{
+    unregister_user(name);
+}
+
 void clear_input()
 {
     // \033[A  -> przesuń kursor o jedną linię w górę
@@ -171,11 +176,16 @@ int main(int argc, char* argv[]) // program potrzebuje nazwy użytkownika i nazw
     }
 
     signal(SIGINT, cleanup);
+    signal(SIGHUP, cleanup);
+
+    atexit(exit_cleanup);
 
     name = argv[1];
     string arg2 = argv[2];
     main_file = "/tmp/chat_group-" + arg2;
     my_file = main_file + "-" + name;
+
+    register_user(name); // jeżeli użytkownik jest już w lobby to nie stanie się nic
 
     // utworzenie swojego pliku i nadanie uprawnień
     create_connection_to_host();
