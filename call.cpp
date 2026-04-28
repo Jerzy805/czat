@@ -117,8 +117,28 @@ int main()
     signal(SIGHUP, cleanup);
 
     system("clear");
+
     cout << "Podaj swój nick:\n";
-    cin >> name;
+
+    while (true)
+    {
+        cin >> name;
+
+        auto list = load_lobby();
+
+        for (int i = 0; i < list.size(); i++)
+        {
+            if (list[i][0] == name)
+            {
+                system("clear");
+                cout << "Już istnieje użytkownik o tym nicku, podaj inny:\n";
+                continue;
+            }
+            break;
+        }
+    }
+
+    
 
     register_user(name); // dodanie użytkownika do lobby
 
