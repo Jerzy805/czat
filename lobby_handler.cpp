@@ -128,15 +128,15 @@ vector<string> get_group_chats()
     return chats;
 }
 
-vector<vector<string>> clear_list(const vector<vector<string>>& added_people)
+vector<vector<string>> clear_list(const vector<vector<string>>& target_ids_vector)
 {
     auto list = load_lobby();
 
     list.erase(
         remove_if(list.begin(), list.end(), [&](const vector<string>& row_in_lobby) {
-            // Sprawdzamy, czy ID z lobby (indeks [1]) istnieje w added_people
-            return any_of(added_people.begin(), added_people.end(), [&](const vector<string>& already_added) {
-                return already_added[1] == row_in_lobby[1]; 
+            // sprawdza czy id z lobby istnieje w targetowanym vectorze
+            return any_of(target_ids_vector.begin(), target_ids_vector.end(), [&](const vector<string>& temp_vector) {
+                return temp_vector[1] == row_in_lobby[1]; 
             });
         }), 
         list.end()
