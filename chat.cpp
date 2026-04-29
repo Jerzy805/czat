@@ -59,11 +59,6 @@ bool is_str_empty(string line)
     return true;
 }
 
-void writer(string line)
-{
-
-}
-
 bool check_msg(string msg)
 {
     size_t pos = msg.find(send_file_signal);
