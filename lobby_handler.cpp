@@ -27,7 +27,6 @@ void register_user(string nick)
 	string text = "lobby_" + nick + "Q" + id;
 
 	string cmd = "touch " + lobby + text;
-		out << cmd << endl;
 	system(cmd.c_str());	
 }
 
