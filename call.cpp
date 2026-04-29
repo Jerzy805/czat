@@ -174,7 +174,6 @@ int main()
                 }
 
                 cout << list.size() + 1 << ". ODŚWIEŻ LISTĘ" << endl;
-                cout << list.size() + 2 << ". Wprowadź dane ręcznie" << endl;
                 
                 cout << "\nWybierz opcję: ";
                 cin >> choice;
@@ -184,7 +183,7 @@ int main()
                     continue;
                 }
                 
-                if (choice > 0 && choice <= list.size() + 2) // ręczne wprowadzanie danych lub wybór z lobby
+                if (choice > 0 && choice < list.size() + 1) // wybór z lobby
                 {
                     break;
                 }
@@ -204,14 +203,8 @@ int main()
             }
             else // ręczne wprowadzanie danych
             {
-                cout << "Podaj nick rozmówcy:\n";
-                cin >> friend_name;
-                cout << "Podaj jego nazwę w spk:\n";
-                cin >> friend_id;
-
-                create_connection(friend_name, friend_id);
-
-                execlp("./chat", "chat", name.c_str(), friend_name.c_str(), friend_id.c_str(), NULL);
+                cout << "Błędna opcja!" << endl;
+                return 1;
             }
         }
         else if (option == 2) // hostowanie czatu grupowego
