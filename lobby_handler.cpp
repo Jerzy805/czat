@@ -1,35 +1,35 @@
-	#include <string>
-	#include <iostream>
-	#include <vector>
-	#include <fstream>
-	#include <filesystem>
-	#include <vector>
-	#include <algorithm>
-	#include <regex>
+#include <string>
+#include <iostream>
+#include <vector>
+#include <fstream>
+#include <filesystem>
+#include <vector>
+#include <algorithm>
+#include <regex>
 
-	using namespace std;
-	namespace fs = filesystem;
-	const string lobby = "/tmp/";
+using namespace std;
+namespace fs = filesystem;
+const string lobby = "/tmp/";
 
-	string get_my_id()
-	{
-		const char* user = getenv("USER");
+string get_my_id()
+{
+	const char* user = getenv("USER");
 
-		if (user == nullptr)
-		    return "unidentified ssh name";
+	if (user == nullptr)
+		return "unidentified ssh name";
 
-		return (string)user;
-	}
+	return (string)user;
+}
 
-	void register_user(string nick)
-	{
-		string id = get_my_id();
-		string text = "lobby_" + nick + "Q" + id;
+void register_user(string nick)
+{
+	string id = get_my_id();
+	string text = "lobby_" + nick + "Q" + id;
 
-		string cmd = "touch " + lobby + text;
-		cout << cmd << endl;
-		system(cmd.c_str());	
-	}
+	string cmd = "touch " + lobby + text;
+		out << cmd << endl;
+	system(cmd.c_str());	
+}
 
 void unregister_user(string nick)
 {
@@ -74,46 +74,46 @@ vector<vector<string>> load_lobby()
     return data;
 }
 
-	vector<string> get_group_chats()
+vector<string> get_group_chats()
+{
+	string prefix = "chat_group-";
+	vector<string> chats;
+
+	if (!fs::exists("/tmp")) return chats;
+
+	for (const auto& entry : fs::directory_iterator("/tmp"))
 	{
-		string prefix = "chat_group-";
-		vector<string> chats;
+	    string filename = entry.path().filename().string();
 
-		if (!fs::exists("/tmp")) return chats;
+		if (filename.find(prefix) == 0) 
+	    {
+	        ifstream f(entry.path());
 
-		for (const auto& entry : fs::directory_iterator("/tmp"))
-		{
-		    string filename = entry.path().filename().string();
-
-		    if (filename.find(prefix) == 0) 
+		    if (f.is_open()) // sprawdzenie czy mam uprawnienia by otwierać plik
 		    {
-		        ifstream f(entry.path());
-
-		        if (f.is_open()) // sprawdzenie czy mam uprawnienia by otwierać plik
-		        {
-		            //dodawanie do wektora samej nazwy czatu
-		            chats.push_back(filename.substr(prefix.length()));
-		            f.close();
-		        }
+		        //dodawanie do wektora samej nazwy czatu
+		        chats.push_back(filename.substr(prefix.length()));
+		         f.close();
 		    }
 		}
-
-		return chats;
 	}
 
-	vector<vector<string>> clear_list(const vector<vector<string>>& target_ids_vector)
-	{
-		auto list = load_lobby();
+	return chats;
+}
 
-		list.erase(
-		    remove_if(list.begin(), list.end(), [&](const vector<string>& row_in_lobby) {
-		        // sprawdza czy id z lobby istnieje w targetowanym vectorze
-		        return any_of(target_ids_vector.begin(), target_ids_vector.end(), [&](const vector<string>& temp_vector) {
-		            return temp_vector[1] == row_in_lobby[1]; 
-		        });
-		    }), 
-		    list.end()
-		);
+vector<vector<string>> clear_list(const vector<vector<string>>& target_ids_vector)
+{
+	auto list = load_lobby();
 
-		return list;
-	}
+	list.erase(
+		 remove_if(list.begin(), list.end(), [&](const vector<string>& row_in_lobby) {
+		     // sprawdza czy id z lobby istnieje w targetowanym vectorze
+		    return any_of(target_ids_vector.begin(), target_ids_vector.end(), [&](const vector<string>& temp_vector) {
+		          return temp_vector[1] == row_in_lobby[1]; 
+		    });
+		}), 
+		list.end()
+	);
+
+	return list;
+}
