@@ -1,7 +1,9 @@
 #include <string>
 #include <fstream>
+#include <filesystem>
 
 using namespace std;
+namespace fs = filesystem;
 
 void get_file(string filename)
 {
@@ -22,4 +24,12 @@ void get_file(string filename)
 
     dest << text;
     dest.close();
+
+    if (filename.find("tar.gz") != string::npos) // obsługa odbierania folderu
+    {
+        string cmd = "tar xzf " + filename;
+        system(cmd.c_str());
+        cmd = "rm " + filename;
+        system(cmd.c_str());
+    }
 }

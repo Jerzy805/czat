@@ -6,9 +6,17 @@
 #include <cstdio>
 
 using namespace std;
+namespace fs = filesystem;
 
 void send_file(string filename, string id)
 {
+    if (fs::is_directory(filename)) // obsługa wysyłania folderu
+    {
+        string cmd = "tar czf " + filename + ".tar.gz " + filename;
+        system(cmd.c_str());
+        filename += ".tar.gz";
+    }
+
     string newname = "/tmp/" + filename;
     string cmd = "cp " + filename + " /tmp/";
     system(cmd.c_str());
