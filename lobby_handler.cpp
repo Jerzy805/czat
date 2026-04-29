@@ -1,4 +1,5 @@
 #include <string>
+#include <iostream>
 #include <vector>
 #include <fstream>
 #include <filesystem>
@@ -8,7 +9,7 @@
 
 using namespace std;
 namespace fs = filesystem;
-const string lobby = "/tmp/lobby";
+const string lobby = "/tmp/lobby/";
 
 string get_my_id()
 {
@@ -23,81 +24,54 @@ string get_my_id()
 void register_user(string nick)
 {
     string id = get_my_id();
-    string text = nick + "(" + id + ")\n";
+    string text = nick + "\"(" + id + ")\"\n";
 
-    // szukanie textu w lobby, żeby nie pisać dwa razy
-    ifstream file(lobby);
-    string file_content;
-
-    if (file.is_open())
-    {
-        getline(file, file_content, '\0');
-        file.close();
-    }
-
-    if (file_content.find(text) != string::npos)
-        return;
-
-    // dopisywanie użytkownika do lobby
-    ofstream f(lobby, ios::app);
-    
-    if (f.is_open())
-    {
-        f << text;
-        f.close();
-    }
-    else
-    {
-        perror("Lobby - ofstream");
-    }
+    string cmd = "touch " + lobby + text;
+    cout << cmd << endl;
+    system(cmd.c_str());	
 }
 
 void unregister_user(string nick)
 {
     string id = get_my_id();
-    string target = nick + "(" + id + ")";
-    vector<string> lines;
-    string line;
-
-    // Odczytujemy cały plik do pamięci
-    ifstream inFile(lobby);
-    if (inFile.is_open()) {
-        while (getline(inFile, line)) {
-            // Dodajemy linię do wektora tylko jeśli nie jest tą, którą chcemy usunąć
-            if (line != target) {
-                lines.push_back(line);
-            }
-        }
-        inFile.close();
-    }
-
-    // Nadpisujemy plik nową zawartością (bez usuniętej linii)
-    ofstream outFile(lobby, ios::trunc);
-    for (const auto& l : lines) {
-        outFile << l << endl;
-    }
+    string file = nick + "\"(" + id + ")\"\n";
+    string cmd = "touch " + lobby + file;
+    system(cmd.c_str());
 }
 
 vector<vector<string>> load_lobby()
 {
     vector<vector<string>> data;
-    ifstream file(lobby);
-    string line;
+    string path = "/tmp/lobby/";
     
-    // Regex do wyciągania nick i id z formatu nick(id)
-    regex pattern(R"((.+)\((.+)\))");
+    // Zmieniony Regex: 
+    // ([^()]+) - Grupa 1: wszystko co nie jest nawiasem (Nick)
+    // \(       - Otwarcie nawiasu
+    // ([^()]+) - Grupa 2: wszystko co nie jest nawiasem (ID)
+    // \)       - Zamknięcie nawiasu
+    regex pattern(R"(([^()]+)\(([^()]+)\))");
     smatch matches;
 
-    if (file.is_open()) {
-        while (getline(file, line)) {
-            if (regex_search(line, matches, pattern) && matches.size() == 3) {
-                // matches[1] to string1, matches[2] to string2
-                if (matches[2].str() != get_my_id()) // żeby nie dodawało samego użytkownika
-                    data.push_back({matches[1].str(), matches[2].str()});
+    try {
+        if (fs::exists(path) && fs::is_directory(path)) {
+            for (const auto& entry : fs::directory_iterator(path)) {
+                string filename = entry.path().filename().string();
+
+                if (regex_search(filename, matches, pattern) && matches.size() == 3) {
+                    string nick = matches[1].str();
+                    string id = matches[2].str();
+
+                    // Pomijamy własne ID
+                    if (id != get_my_id()) {
+                        data.push_back({nick, id});
+                    }
+                }
             }
         }
-        file.close();
+    } catch (const fs::filesystem_error& e) {
+        cerr << "Błąd systemu plików: " << e.what() << endl;
     }
+
     return data;
 }
 
