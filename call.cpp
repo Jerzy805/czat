@@ -119,12 +119,15 @@ int main()
     system("clear");
 
     cout << "Podaj swój nick:\n";
+    bool temp = false;
 
-    while (true)
+    while (!temp)
     {
         cin >> name;
-
+        
         auto list = load_lobby();
+        if (list.size() == 0)
+        	break;
 
         for (int i = 0; i < list.size(); i++)
         {
@@ -134,15 +137,13 @@ int main()
                 cout << "Już istnieje użytkownik o tym nicku, podaj inny:\n";
                 continue;
             }
-            break;
+            temp = true;
         }
     }
 
-    
-
     register_user(name); // dodanie użytkownika do lobby
 
-    system("clear");
+    //system("clear");
     int option;
 
     cout << "1. Nowy czat\n";
