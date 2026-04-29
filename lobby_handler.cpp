@@ -33,7 +33,7 @@ void register_user(string nick)
 void unregister_user(string nick)
 {
 	string id = get_my_id();
-	string text = "lobby_" + nick + "Q" + id;
+	string text = "lobby_" + nick + "Q" + id + "2>/dev/null"; // żeby w razie braku pliku nie wywalało błędu, kwestia estetyki
 	string cmd = "rm " + lobby + text;
 	system(cmd.c_str());
 }
