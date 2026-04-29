@@ -135,8 +135,6 @@ void* reader(void* arg) // najważniejsza funkcja, odczytuje wiadomości drugieg
         string line;
         while (getline(f, line))
         {
-            writer(line);
-
             if (check_msg(line))
             {
                 if (!file_handler())
